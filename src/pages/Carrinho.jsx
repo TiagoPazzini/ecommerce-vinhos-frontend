@@ -1,74 +1,16 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCarrinhoController } from '../controllers/useCarrinhoController'
 
 export default function Carrinho() {
-  const navigate = useNavigate()
-  const [carrinho, setCarrinho] = useState([])
-
-  // Carregar carrinho do localStorage ao montar o componente
-  useEffect(() => {
-    carregarCarrinho()
-  }, [])
-
-  function carregarCarrinho() {
-    const carrinhoSalvo = localStorage.getItem('vinho_carrinho')
-    if (carrinhoSalvo) {
-      setCarrinho(JSON.parse(carrinhoSalvo))
-    }
-  }
-
-  // Salvar carrinho no localStorage
-  function salvarCarrinho(novoCarrinho) {
-    localStorage.setItem('vinho_carrinho', JSON.stringify(novoCarrinho))
-    setCarrinho(novoCarrinho)
-  }
-
-  // Aumentar quantidade de um item
-  function aumentarQuantidade(produtoId) {
-    const novoCarrinho = carrinho.map(item => 
-      item.produto.id === produtoId 
-        ? { ...item, quantidade: item.quantidade + 1 }
-        : item
-    )
-    salvarCarrinho(novoCarrinho)
-  }
-
-  // Diminuir quantidade de um item
-  function diminuirQuantidade(produtoId) {
-    const novoCarrinho = carrinho.map(item => 
-      item.produto.id === produtoId && item.quantidade > 1
-        ? { ...item, quantidade: item.quantidade - 1 }
-        : item
-    )
-    salvarCarrinho(novoCarrinho)
-  }
-
-  // Remover item do carrinho
-  function removerItem(produtoId) {
-    if (confirm('Deseja remover este item do carrinho?')) {
-      const novoCarrinho = carrinho.filter(item => item.produto.id !== produtoId)
-      salvarCarrinho(novoCarrinho)
-    }
-  }
-
-  // Calcular subtotal de um item
-  function calcularSubtotal(item) {
-    return item.produto.preco * item.quantidade
-  }
-
-  // Calcular total geral
-  function calcularTotal() {
-    return carrinho.reduce((total, item) => total + calcularSubtotal(item), 0)
-  }
-
-  // Finalizar compra
-  function finalizarCompra() {
-  if (carrinho.length === 0) {
-    alert('Seu carrinho está vazio!')
-    return
-  }
-  navigate('/checkout')
-}
+  const {
+    carrinho,
+    aumentarQuantidade,
+    diminuirQuantidade,
+    removerItem,
+    finalizarCompra,
+    calcularSubtotal,
+    calcularTotal,
+    navigate
+  } = useCarrinhoController()
 
   return (
     <div style={{ background: 'var(--cream)', minHeight: '100vh', paddingBottom: 60 }}>

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+// src/pages/Pedidos.jsx
+import { usePedidosController } from '../controllers/usePedidosController'
 
+// Dicionário de cores (Mantido na View pois é estritamente UI/CSS)
 const statusCor = {
   'EM PROCESSAMENTO': { bg: '#FEF9C3', color: '#854D0E' },
   'APROVADA': { bg: '#F0FDF4', color: '#166534' },
@@ -11,26 +11,14 @@ const statusCor = {
 }
 
 export default function Pedidos() {
-  const navigate = useNavigate()
-  const { usuario } = useAuth()
-  const [searchParams] = useSearchParams()
-  const sucesso = searchParams.get('sucesso')
-
-  const [pedidos, setPedidos] = useState([])
-  const [expandido, setExpandido] = useState(null)
-
-  useEffect(() => {
-    const todos = JSON.parse(localStorage.getItem('vinho_pedidos') || '[]')
-    const meus = todos.filter(p => p.clienteEmail === usuario?.email)
-    setPedidos(meus.reverse())
-  }, [])
-
-  function formatarData(iso) {
-    return new Date(iso).toLocaleDateString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    })
-  }
+  const {
+    pedidos,
+    expandido,
+    sucesso,
+    toggleExpandido,
+    formatarData,
+    navigate
+  } = usePedidosController()
 
   return (
     <div style={{ background: 'var(--cream)', minHeight: '100vh', paddingBottom: 60 }}>
@@ -115,7 +103,7 @@ export default function Pedidos() {
 
               {/* Botão ver detalhes */}
               <div style={{ borderTop: '1px solid var(--border)', padding: '12px 24px' }}>
-                <button onClick={() => setExpandido(expandido === pedido.id ? null : pedido.id)}
+                <button onClick={() => toggleExpandido(pedido.id)}
                   style={{
                     background: 'none', border: 'none', color: 'var(--wine)',
                     cursor: 'pointer', fontSize: 13, fontFamily: 'DM Sans, sans-serif'

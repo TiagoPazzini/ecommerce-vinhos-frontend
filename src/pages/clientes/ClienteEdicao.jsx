@@ -1,20 +1,20 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { buscarClientePorId, atualizarCliente, inativarCliente } from '../../services/clienteService'
+import { useClienteEdicaoController } from "../../controllers/useClienteEdicaoController"
+
+const inputStyle = {
+  width: '100%', border: '1px solid var(--border)', borderRadius: 8,
+  padding: '10px 14px', fontSize: 14, fontFamily: 'DM Sans, sans-serif',
+  outline: 'none', boxSizing: 'border-box'
+}
+
+const labelStyle = {
+  display: 'block', fontSize: 13, color: 'var(--muted)', marginBottom: 6
+}
 
 export default function ClienteEdicao() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [form, setForm] = useState(null)
-  const [erro, setErro] = useState('')
-
-  useEffect(() => {
-    const cliente = buscarClientePorId(id)
-    // Garante que a propriedade cartoes exista, mesmo que o cliente venha sem ela
-    if (cliente) {
-      setForm({ ...cliente, cartoes: cliente.cartoes || [] })
-    }
-  }, [id])
+  const {
+    form, erro, handleChange, handleAddCartao, handleCartaoChange,
+    handleRemoveCartao, handleSubmit, handleInativar, handleReativar, navigate
+  } = useClienteEdicaoController()
 
   if (!form) return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 32px' }}>
@@ -26,72 +26,6 @@ export default function ClienteEdicao() {
     </div>
   )
 
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
-  // --- FUNÇÕES PARA GERENCIAR CARTÕES ---
-  function handleAddCartao() {
-    const novosCartoes = [...form.cartoes, { numero: '', nomeTitular: '', validade: '', cvv: '' }]
-    setForm({ ...form, cartoes: novosCartoes })
-  }
-
-  function handleCartaoChange(index, e) {
-    const { name, value } = e.target
-    const novosCartoes = [...form.cartoes]
-    novosCartoes[index] = { ...novosCartoes[index], [name]: value }
-    setForm({ ...form, cartoes: novosCartoes })
-  }
-
-  function handleRemoveCartao(index) {
-    const novosCartoes = form.cartoes.filter((_, i) => i !== index)
-    setForm({ ...form, cartoes: novosCartoes })
-  }
-  // --------------------------------------
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    setErro('')
-    if (!form.nome || !form.email || !form.telefone) {
-      setErro('Nome, e-mail e telefone são obrigatórios.')
-      return
-    }
-    
-    // Validação básica para garantir que cartões em branco não sejam salvos
-    const cartoesInvalidos = form.cartoes.some(c => !c.numero || !c.nomeTitular)
-    if (cartoesInvalidos) {
-      setErro('Preencha os dados obrigatórios de todos os cartões adicionados.')
-      return
-    }
-
-    atualizarCliente(id, form)
-    alert('Cliente atualizado com sucesso!')
-    navigate('/admin/clientes')
-  }
-
-  function handleInativar() {
-    if (!confirm(`Deseja inativar o cliente ${form.nome}?`)) return
-    inativarCliente(id)
-    alert('Cliente inativado com sucesso!')
-    navigate('/admin/clientes')
-  }
-
-  function handleReativar() {
-    if (!confirm(`Deseja reativar o cliente ${form.nome}?`)) return
-    atualizarCliente(id, { status: 'ativo' })
-    alert('Cliente reativado com sucesso!')
-    navigate('/admin/clientes')
-  }
-
-  const inputStyle = {
-    width: '100%', border: '1px solid var(--border)', borderRadius: 8,
-    padding: '10px 14px', fontSize: 14, fontFamily: 'DM Sans, sans-serif',
-    outline: 'none', boxSizing: 'border-box'
-  }
-
-  const labelStyle = {
-    display: 'block', fontSize: 13, color: 'var(--muted)', marginBottom: 6
-  }
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 32px' }}>

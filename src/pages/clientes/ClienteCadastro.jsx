@@ -1,32 +1,10 @@
-import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { cadastrarCliente } from '../../services/clienteService'
+// src/pages/clientes/ClienteCadastro.jsx
+import { useClienteCadastroController } from '../../controllers/useClienteCadastroController'
 
+// Constantes estáticas da UI
 const BANDEIRAS = ['Visa', 'Mastercard', 'Elo', 'American Express', 'Hipercard']
 const TIPOS_RESIDENCIA = ['Casa', 'Apartamento', 'Comercial', 'Outro']
 const TIPOS_LOGRADOURO = ['Rua', 'Avenida', 'Travessa', 'Alameda', 'Praça', 'Rodovia']
-
-function calcularIdade(dataNascimento) {
-  const hoje = new Date()
-  const nascimento = new Date(dataNascimento)
-  let idade = hoje.getFullYear() - nascimento.getFullYear()
-  if (hoje.getMonth() < nascimento.getMonth() ||
-    (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate())) {
-    idade--
-  }
-  return idade
-}
-
-const enderecoVazio = () => ({
-  apelido: '', tipoResidencia: '', tipoLogradouro: '',
-  logradouro: '', numero: '', bairro: '', cep: '',
-  cidade: '', estado: '', pais: 'Brasil', observacoes: '',
-  tipoEndereco: 'entrega'
-})
-
-const cartaoVazio = () => ({
-  numero: '', nomeImpresso: '', bandeira: '', codSeguranca: '', preferencial: false
-})
 
 const inputStyle = {
   width: '100%', border: '1px solid var(--border)', borderRadius: 8,
@@ -38,100 +16,23 @@ const labelStyle = {
   display: 'block', fontSize: 13, color: 'var(--muted)', marginBottom: 6
 }
 
+const secaoStyle = {
+  background: '#fff', border: '1px solid var(--border)',
+  borderRadius: 12, padding: 24, marginBottom: 24
+}
+
+const secaoTituloStyle = {
+  fontFamily: 'Playfair Display, serif', fontSize: 18,
+  color: 'var(--wine-dark)', marginBottom: 20, paddingBottom: 12,
+  borderBottom: '1px solid var(--border)'
+}
+
 export default function ClienteCadastro() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const isAdmin = location.pathname.startsWith('/admin')
-
-  const [form, setForm] = useState({
-    nome: '', email: '', cpf: '', dataNascimento: '',
-    genero: '', telefone: '', senha: '', confirmarSenha: '',
-  })
-  const [enderecos, setEnderecos] = useState([enderecoVazio()])
-  const [cartoes, setCartoes] = useState([cartaoVazio()])
-  const [erro, setErro] = useState('')
-
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
-  function handleEnderecoChange(index, e) {
-    const novos = [...enderecos]
-    novos[index][e.target.name] = e.target.value
-    setEnderecos(novos)
-  }
-
-  function handleCartaoChange(index, e) {
-    const novos = [...cartoes]
-    novos[index][e.target.name] = e.target.value
-    setCartoes(novos)
-  }
-
-  function togglePreferencial(index) {
-    setCartoes(cartoes.map((c, i) => ({ ...c, preferencial: i === index })))
-  }
-
-  function adicionarEndereco() {
-    setEnderecos([...enderecos, enderecoVazio()])
-  }
-
-  function removerEndereco(index) {
-    if (enderecos.length === 1) return
-    setEnderecos(enderecos.filter((_, i) => i !== index))
-  }
-
-  function adicionarCartao() {
-    setCartoes([...cartoes, cartaoVazio()])
-  }
-
-  function removerCartao(index) {
-    if (cartoes.length === 1) return
-    setCartoes(cartoes.filter((_, i) => i !== index))
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    setErro('')
-
-    if (calcularIdade(form.dataNascimento) < 18) {
-      setErro('É necessário ter 18 anos ou mais para se cadastrar. (RN0071)')
-      return
-    }
-    if (form.senha !== form.confirmarSenha) {
-      setErro('As senhas não coincidem.')
-      return
-    }
-    const senhaForte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/.test(form.senha)
-    if (!senhaForte) {
-      setErro('Senha deve ter 8+ caracteres, maiúscula, minúscula e caractere especial. (RNF0031)')
-      return
-    }
-    const temCobranca = enderecos.some(e => e.tipoEndereco === 'cobranca')
-    const temEntrega = enderecos.some(e => e.tipoEndereco === 'entrega')
-    if (!temCobranca) {
-      setErro('É obrigatório cadastrar ao menos um endereço de cobrança. (RN0021)')
-      return
-    }
-    if (!temEntrega) {
-      setErro('É obrigatório cadastrar ao menos um endereço de entrega. (RN0022)')
-      return
-    }
-
-    cadastrarCliente({ ...form, enderecos, cartoes })
-    alert('Cliente cadastrado com sucesso!')
-    navigate(isAdmin ? '/admin/clientes' : '/')
-  }
-
-  const secaoStyle = {
-    background: '#fff', border: '1px solid var(--border)',
-    borderRadius: 12, padding: 24, marginBottom: 24
-  }
-
-  const secaoTituloStyle = {
-    fontFamily: 'Playfair Display, serif', fontSize: 18,
-    color: 'var(--wine-dark)', marginBottom: 20, paddingBottom: 12,
-    borderBottom: '1px solid var(--border)'
-  }
+  const {
+    form, enderecos, cartoes, erro, isAdmin,
+    handleChange, handleEnderecoChange, handleCartaoChange, togglePreferencial,
+    adicionarEndereco, removerEndereco, adicionarCartao, removerCartao, handleSubmit, navigate
+  } = useClienteCadastroController()
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '48px 32px' }}>

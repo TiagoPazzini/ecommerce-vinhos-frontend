@@ -1,31 +1,7 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useCheckoutController } from "../controllers/useCheckoutController"
+import { Link } from 'react-router-dom'
 
-// Cupons disponíveis para teste
-const CUPONS_MOCK = [
-  { codigo: 'PROMO10', tipo: 'promocional', valor: 10 },
-  { codigo: 'TROCA20', tipo: 'troca', valor: 20 },
-]
 
-// Calcula frete pelo primeiro dígito do CEP
-function calcularFrete(cep) {
-  const inicio = cep.replace(/\D/g, '')[0]
-  if (['0', '1'].includes(inicio)) return 15
-  if (['2', '3'].includes(inicio)) return 20
-  return 25
-}
-
-function calcularIdade(dataNascimento) {
-  const hoje = new Date()
-  const nasc = new Date(dataNascimento)
-  let idade = hoje.getFullYear() - nasc.getFullYear()
-  if (hoje.getMonth() < nasc.getMonth() ||
-    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())) {
-    idade--
-  }
-  return idade
-}
 
 const inputStyle = {
   width: '100%', border: '1px solid var(--border)', borderRadius: 8,
@@ -44,173 +20,32 @@ const secaoTituloStyle = {
   paddingBottom: 12, borderBottom: '1px solid var(--border)'
 }
 
+
+
 export default function Checkout() {
-  const navigate = useNavigate()
-  const { usuario } = useAuth()
+  const {
+    etapa, setEtapa, carrinho, cliente, erro, enderecoSelecionado,
+    frete, codigoCupom, setCodigoCupom, cuponsAplicados, cartoesSelecionados,
+    erroPagamento, subtotal, descontoCupons, totalComFrete,
+    handleSelecionarEndereco, handleProximaEtapa, handleAplicarCupom,
+    handleRemoverCupom, handleToggleCartao, handleValorCartao,
+    validarValorCartao, calcularFrete, handleConfirmar, adicionandoEndereco, setAdicionandoEndereco, novoEndereco,
+    handleNovoEnderecoChange, handleSalvarEndereco
+  } = useCheckoutController()
 
-  const [etapa, setEtapa] = useState(1)
-  const [carrinho, setCarrinho] = useState([])
-  const [cliente, setCliente] = useState(null)
-  const [erro, setErro] = useState('')
-
-  // Etapa 1 — Entrega
-  const [enderecoSelecionado, setEnderecoSelecionado] = useState(null)
-  const [frete, setFrete] = useState(0)
-
-  // Etapa 2 — Pagamento
-  const [codigoCupom, setCodigoCupom] = useState('')
-  const [cuponsAplicados, setCuponsAplicados] = useState([])
-  const [cartoesSelecionados, setCartoesSelecionados] = useState([])
-  const [erroPagamento, setErroPagamento] = useState('')
-
-  // Carrega dados ao montar
-  useEffect(() => {
-    const carrinhoSalvo = localStorage.getItem('vinho_carrinho')
-    if (carrinhoSalvo) setCarrinho(JSON.parse(carrinhoSalvo))
-
-    const clientes = JSON.parse(localStorage.getItem('vinho_clientes') || '[]')
-    const clienteLogado = clientes.find(c => c.email === usuario?.email)
-    if (clienteLogado) setCliente(clienteLogado)
-  }, [])
-
-  // Cálculos
-  const subtotal = carrinho.reduce((t, item) => t + item.produto.preco * item.quantidade, 0)
-  const descontoCupons = cuponsAplicados.reduce((t, c) => t + c.valor, 0)
-  const totalComFrete = subtotal + frete - descontoCupons
-  const totalRestante = totalComFrete - cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
-
-  // Seleciona endereço e calcula frete
-  function handleSelecionarEndereco(end) {
-    setEnderecoSelecionado(end)
-    setFrete(calcularFrete(end.cep))
-  }
-
-  // Avança etapa
-  function handleProximaEtapa() {
-    setErro('')
-    if (etapa === 1) {
-      if (!enderecoSelecionado) {
-        setErro('Selecione um endereço de entrega.')
-        return
-      }
-      setEtapa(2)
-    } else if (etapa === 2) {
-      // Valida que o pagamento cobre o total
-      const totalPagoCartoes = cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
-      const totalPago = totalPagoCartoes + descontoCupons
-      if (totalPago < totalComFrete) {
-        setErroPagamento(`Falta R$ ${(totalComFrete - totalPago).toFixed(2)} para cobrir o total.`)
-        return
-      }
-      setErroPagamento('')
-      setEtapa(3)
-    }
-  }
-
-  // Aplica cupom
-  function handleAplicarCupom() {
-    setErro('')
-    const cupom = CUPONS_MOCK.find(c => c.codigo === codigoCupom.toUpperCase())
-    if (!cupom) { setErro('Cupom inválido.'); return }
-
-    const jaAplicado = cuponsAplicados.find(c => c.codigo === cupom.codigo)
-    if (jaAplicado) { setErro('Este cupom já foi aplicado.'); return }
-
-    const temPromocional = cuponsAplicados.find(c => c.tipo === 'promocional')
-    if (cupom.tipo === 'promocional' && temPromocional) {
-      setErro('Apenas um cupom promocional por compra. (RN0033)')
-      return
-    }
-
-    setCuponsAplicados([...cuponsAplicados, cupom])
-    setCodigoCupom('')
-  }
-
-  // Remove cupom
-  function handleRemoverCupom(codigo) {
-    setCuponsAplicados(cuponsAplicados.filter(c => c.codigo !== codigo))
-  }
-
-  // Adiciona cartão ao pagamento
-  function handleToggleCartao(cartao) {
-    const existe = cartoesSelecionados.find(c => c.numero === cartao.numero)
-    if (existe) {
-      setCartoesSelecionados(cartoesSelecionados.filter(c => c.numero !== cartao.numero))
-    } else {
-      setCartoesSelecionados([...cartoesSelecionados, { ...cartao, valor: '' }])
-    }
-  }
-
-  // Atualiza valor do cartão
-  function handleValorCartao(numero, valor) {
-    setCartoesSelecionados(cartoesSelecionados.map(c =>
-      c.numero === numero ? { ...c, valor } : c
-    ))
-  }
-
-  // Valida valor mínimo por cartão (RN0034 / RN0035)
-  function validarValorCartao(cartao) {
-    const val = parseFloat(cartao.valor) || 0
-    const temCupom = descontoCupons > 0
-    if (temCupom) return true // RN0035 — com cupom, valor pode ser menor que R$10
-    return val >= 10
-  }
-
-  // Confirma pedido
-  function handleConfirmar() {
-    setErro('')
-
-    // RN0071 — verifica maioridade
-    if (cliente?.dataNascimento && calcularIdade(cliente.dataNascimento) < 18) {
-      setErro('Não é possível finalizar a compra. Cliente menor de idade. (RN0071)')
-      return
-    }
-
-    // Valida valores mínimos por cartão
-    const cartaoInvalido = cartoesSelecionados.find(c => !validarValorCartao(c))
-    if (cartaoInvalido && descontoCupons === 0) {
-      setErro('Valor mínimo por cartão é R$ 10,00. (RN0034)')
-      return
-    }
-
-    // Monta o pedido
-    const pedido = {
-      id: Date.now(),
-      clienteId: cliente?.id,
-      clienteEmail: usuario?.email,
-      itens: carrinho,
-      enderecoEntrega: enderecoSelecionado,
-      formasPagamento: {
-        cupons: cuponsAplicados,
-        cartoes: cartoesSelecionados
-      },
-      frete,
-      subtotal,
-      descontoCupons,
-      total: totalComFrete,
-      status: 'EM PROCESSAMENTO',
-      dataPedido: new Date().toISOString()
-    }
-
-    // Salva pedido
-    const pedidos = JSON.parse(localStorage.getItem('vinho_pedidos') || '[]')
-    localStorage.setItem('vinho_pedidos', JSON.stringify([...pedidos, pedido]))
-
-    // Limpa carrinho
-    localStorage.setItem('vinho_carrinho', JSON.stringify([]))
-
-    navigate('/pedidos?sucesso=true')
-  }
 
   // Se carrinho vazio
   if (carrinho.length === 0 && etapa !== 3) {
     return (
       <div style={{ maxWidth: 600, margin: '80px auto', textAlign: 'center', padding: 32 }}>
         <p style={{ fontSize: 18, color: 'var(--muted)', marginBottom: 24 }}>Seu carrinho está vazio.</p>
-        <button onClick={() => navigate('/catalogo')} style={{
-          background: 'var(--wine)', color: '#fff', border: 'none',
+        <Link to="/catalogo" style={{
+          background: 'var(--wine)', color: '#fff', border: 'none', textDecoration: 'none',
+          display: 'inline-block',
           borderRadius: 8, padding: '12px 24px', fontSize: 14, cursor: 'pointer'
-        }}>Ir para o catálogo</button>
+        }}>
+          Ir para o Catálogo
+        </Link>
       </div>
     )
   }
@@ -266,41 +101,63 @@ export default function Checkout() {
             <div style={secaoStyle}>
               <h2 style={secaoTituloStyle}>Selecione o endereço de entrega</h2>
 
-              {!cliente?.enderecos?.length ? (
-                <p style={{ color: 'var(--muted)', fontSize: 14 }}>
-                  Você não tem endereços cadastrados.
-                  <button onClick={() => navigate('/cadastro')} style={{
-                    background: 'none', border: 'none', color: 'var(--wine)',
-                    cursor: 'pointer', textDecoration: 'underline', fontSize: 14, marginLeft: 4
-                  }}>
-                    Cadastre um endereço.
-                  </button>
-                </p>
+              {!cliente?.enderecos?.length || adicionandoEndereco ? (
+                <form onSubmit={handleSalvarEndereco} style={{ background: '#F9FAFB', border: '1px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 16, marginBottom: 16, marginTop: 0 }}>Cadastrar Endereço</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <input name="apelido" placeholder="Apelido (ex: Casa)" value={novoEndereco.apelido} onChange={handleNovoEnderecoChange} style={inputStyle} required />
+                    <input name="cep" placeholder="CEP (somente números)" value={novoEndereco.cep} onChange={handleNovoEnderecoChange} style={inputStyle} required maxLength="8" />
+                    <input name="logradouro" placeholder="Endereço (Rua, Avenida...)" value={novoEndereco.logradouro} onChange={handleNovoEnderecoChange} style={{ ...inputStyle, gridColumn: 'span 2' }} required />
+                    <input name="numero" placeholder="Número" value={novoEndereco.numero} onChange={handleNovoEnderecoChange} style={inputStyle} required />
+                    <input name="bairro" placeholder="Bairro" value={novoEndereco.bairro} onChange={handleNovoEnderecoChange} style={inputStyle} required />
+                    <input name="cidade" placeholder="Cidade" value={novoEndereco.cidade} onChange={handleNovoEnderecoChange} style={inputStyle} required />
+                    <input name="estado" placeholder="Estado (ex: SP)" value={novoEndereco.estado} onChange={handleNovoEnderecoChange} style={inputStyle} required maxLength="2" />
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                    <button type="submit" style={{ background: 'var(--wine)', color: '#fff', padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13 }}>
+                      Salvar Endereço
+                    </button>
+                    {cliente?.enderecos?.length > 0 && (
+                      <button type="button" onClick={() => setAdicionandoEndereco(false)} style={{ background: 'transparent', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </form>
               ) : (
-                cliente.enderecos
-                  .filter(e => e.tipoEndereco === 'entrega' || e.tipoEndereco === 'ambos')
-                  .map((end, i) => (
-                    <div key={i} onClick={() => handleSelecionarEndereco(end)} style={{
-                      border: `2px solid ${enderecoSelecionado?.apelido === end.apelido ? 'var(--wine)' : 'var(--border)'}`,
-                      borderRadius: 10, padding: 16, marginBottom: 12, cursor: 'pointer',
-                      background: enderecoSelecionado?.apelido === end.apelido ? '#FFF5F5' : '#fff'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>{end.apelido}</span>
+                <>
+                  {cliente.enderecos
+                    .filter(e => e.tipoEndereco === 'entrega' || e.tipoEndereco === 'ambos')
+                    .map((end, i) => (
+                      <div key={i} onClick={() => handleSelecionarEndereco(end)} style={{
+                        border: `2px solid ${enderecoSelecionado?.apelido === end.apelido ? 'var(--wine)' : 'var(--border)'}`,
+                        borderRadius: 10, padding: 16, marginBottom: 12, cursor: 'pointer',
+                        background: enderecoSelecionado?.apelido === end.apelido ? '#FFF5F5' : '#fff'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 600, fontSize: 14 }}>{end.apelido}</span>
+                          {enderecoSelecionado?.apelido === end.apelido && (
+                            <span style={{ color: 'var(--wine)', fontSize: 13 }}>✓ Selecionado</span>
+                          )}
+                        </div>
+                        <p style={{ color: 'var(--muted)', fontSize: 13, margin: '6px 0 0' }}>
+                          {end.tipoLogradouro} {end.logradouro}, {end.numero} — {end.bairro}, {end.cidade}/{end.estado} — CEP {end.cep}
+                        </p>
                         {enderecoSelecionado?.apelido === end.apelido && (
-                          <span style={{ color: 'var(--wine)', fontSize: 13 }}>✓ Selecionado</span>
+                          <p style={{ color: 'var(--wine)', fontSize: 13, marginTop: 8, fontWeight: 500 }}>
+                            Frete: R$ {calcularFrete(end.cep).toFixed(2)}
+                          </p>
                         )}
                       </div>
-                      <p style={{ color: 'var(--muted)', fontSize: 13, margin: '6px 0 0' }}>
-                        {end.tipoLogradouro} {end.logradouro}, {end.numero} — {end.bairro}, {end.cidade}/{end.estado} — CEP {end.cep}
-                      </p>
-                      {enderecoSelecionado?.apelido === end.apelido && (
-                        <p style={{ color: 'var(--wine)', fontSize: 13, marginTop: 8, fontWeight: 500 }}>
-                          Frete: R$ {calcularFrete(end.cep).toFixed(2)}
-                        </p>
-                      )}
-                    </div>
-                  ))
+                    ))}
+                    
+                    <button type="button" onClick={() => setAdicionandoEndereco(true)} style={{ 
+                      width: '100%', background: 'transparent', border: '1px dashed var(--wine)', color: 'var(--wine)', 
+                      padding: 16, borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500 
+                    }}>
+                      + Adicionar outro endereço
+                    </button>
+                </>
               )}
             </div>
 
@@ -491,7 +348,7 @@ export default function Checkout() {
                   {enderecoSelecionado?.tipoLogradouro} {enderecoSelecionado?.logradouro}, {enderecoSelecionado?.numero} — {enderecoSelecionado?.bairro}, {enderecoSelecionado?.cidade}/{enderecoSelecionado?.estado}
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                  Frete: R$ {frete.toFixed(2)}
+                  Frete: R$ {frete.toFixed(2)}  
                 </p>
               </div>
 

@@ -1,33 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { listarClientes, inativarCliente, atualizarCliente } from '../../services/clienteService'
+import { useClienteListaController } from '../../controllers/useClienteListaController'
 
 export default function ClienteLista() {
-  const navigate = useNavigate()
-  const [busca, setBusca] = useState('')
-  const [clientes, setClientes] = useState([])
-
-  useEffect(() => {
-    setClientes(listarClientes())
-  }, [])
-
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome.toLowerCase().includes(busca.toLowerCase()) ||
-    c.email.toLowerCase().includes(busca.toLowerCase()) ||
-    c.cpf.includes(busca)
-  )
-
-  function handleInativar(id) {
-    if (!confirm('Deseja inativar este cliente?')) return
-    inativarCliente(id)
-    setClientes(listarClientes())
-  }
-
-  function handleReativar(id) {
-  if (!confirm('Deseja reativar este cliente?')) return
-  atualizarCliente(id, { status: 'ativo' })
-  setClientes(listarClientes())
-}
+  const {
+    busca, setBusca, clientesFiltrados,
+    handleInativar, handleReativar, navigate
+  } = useClienteListaController()
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 32px' }}>

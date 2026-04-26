@@ -1,44 +1,12 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-
-const usuariosMock = [
-  { email: 'admin@vinho.com', senha: 'Admin@123', nome: 'Administrador', perfil: 'admin' },
-  { email: 'cliente@vinho.com', senha: 'Cliente@123', nome: 'Rodrigo Rocha ', perfil: 'cliente' },
-]
+// src/pages/Login.jsx
+import { Link } from 'react-router-dom'
+import { useLoginController } from '../controllers/useLoginController'
 
 export default function Login() {
-  const navigate = useNavigate()
-  const { login } = useAuth()
-  const [aba, setAba] = useState('login')
-  const [form, setForm] = useState({ email: '', senha: '' })
-  const [erro, setErro] = useState('')
-
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    setErro('')
-
-    const encontrado = usuariosMock.find(
-      u => u.email === form.email && u.senha === form.senha
-    )
-
-    if (!encontrado) {
-      setErro('E-mail ou senha inválidos.')
-      return
-    }
-
-    login({ nome: encontrado.nome, email: encontrado.email, perfil: encontrado.perfil })
-
-    if (encontrado.perfil === 'admin') {
-      navigate('/admin/clientes')
-    } else {
-      navigate('/')
-    }
-  }
+  const {
+    aba, setAba, form, erro, setErro,
+    handleChange, handleSubmit
+  } = useLoginController()
 
   return (
     <div style={{

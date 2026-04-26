@@ -1,19 +1,6 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCatalogoController } from '../controllers/useCatalogoController'
 
-// Dados mockados dos vinhos
-const vinhosMock = [
-  { id: 1, nome: 'Château Margaux', tipo: 'Tinto', uva: 'Cabernet Sauvignon', regiao: 'Bordeaux, França', preco: 890.00, safra: 2018, harmonizacao: ['Carnes vermelhas', 'Queijos'] },
-  { id: 2, nome: 'Concha y Toro Gran Reserva', tipo: 'Tinto', uva: 'Carménère', regiao: 'Vale do Maipo, Chile', preco: 189.00, safra: 2020, harmonizacao: ['Carnes vermelhas', 'Massas'] },
-  { id: 3, nome: 'Santa Julia Rosé', tipo: 'Rosé', uva: 'Malbec', regiao: 'Mendoza, Argentina', preco: 97.00, safra: 2022, harmonizacao: ['Saladas', 'Peixes'] },
-  { id: 4, nome: 'Veuve Clicquot Brut', tipo: 'Espumante', uva: 'Chardonnay', regiao: 'Champagne, França', preco: 620.00, safra: 2019, harmonizacao: ['Sobremesas', 'Queijos'] },
-  { id: 5, nome: 'Quinta do Crasto', tipo: 'Tinto', uva: 'Touriga Nacional', regiao: 'Douro, Portugal', preco: 210.00, safra: 2019, harmonizacao: ['Carnes vermelhas', 'Queijos'] },
-  { id: 6, nome: 'Casas del Bosque Riesling', tipo: 'Branco', uva: 'Riesling', regiao: 'Casablanca, Chile', preco: 134.00, safra: 2021, harmonizacao: ['Peixes', 'Frutos do mar'] },
-  { id: 7, nome: 'Cloudy Bay Sauvignon Blanc', tipo: 'Branco', uva: 'Sauvignon Blanc', regiao: 'Marlborough, Nova Zelândia', preco: 245.00, safra: 2022, harmonizacao: ['Peixes', 'Saladas'] },
-  { id: 8, nome: 'Moët & Chandon Impérial', tipo: 'Espumante', uva: 'Pinot Noir', regiao: 'Champagne, França', preco: 380.00, safra: 2020, harmonizacao: ['Sobremesas', 'Frutos do mar'] },
-]
-
-// Cores por tipo de vinho
+// Cores por tipo de vinho (Mantido na View pois é estritamente UI)
 const tipoCor = {
   'Tinto': { bg: '#7B1F30', text: '#F8F4EF' },
   'Branco': { bg: '#C9A96E', text: '#1A0A0E' },
@@ -22,45 +9,11 @@ const tipoCor = {
 }
 
 export default function Catalogo() {
-  const navigate = useNavigate()
-  const [filtroTipo, setFiltroTipo] = useState('Todos')
-  const [carrinho, setCarrinho] = useState([])
-
-  // Carregar carrinho do localStorage ao montar o componente
-  useEffect(() => {
-    const carrinhoSalvo = localStorage.getItem('vinho_carrinho')
-    if (carrinhoSalvo) {
-      setCarrinho(JSON.parse(carrinhoSalvo))
-    }
-  }, [])
-
-  // Calcular quantidade total de itens no carrinho
-  const quantidadeTotal = carrinho.reduce((total, item) => total + item.quantidade, 0)
-
-  // Filtrar vinhos por tipo
-  const vinhosFiltrados = filtroTipo === 'Todos' 
-    ? vinhosMock 
-    : vinhosMock.filter(v => v.tipo === filtroTipo)
-
-  // Adicionar produto ao carrinho
-  function adicionarAoCarrinho(vinho) {
-    const carrinhoAtual = [...carrinho]
-    const itemExistente = carrinhoAtual.find(item => item.produto.id === vinho.id)
-
-    if (itemExistente) {
-      // Se já existe, incrementa a quantidade
-      itemExistente.quantidade += 1
-    } else {
-      // Se não existe, adiciona novo item
-      carrinhoAtual.push({ produto: vinho, quantidade: 1 })
-    }
-
-    // Salvar no localStorage e atualizar estado
-    localStorage.setItem('vinho_carrinho', JSON.stringify(carrinhoAtual))
-    setCarrinho(carrinhoAtual)
-    
-    alert(`${vinho.nome} adicionado ao carrinho!`)
-  }
+  const {
+    filtroTipo, setFiltroTipo,
+    vinhosFiltrados, quantidadeTotal,
+    adicionarAoCarrinho, navigate
+  } = useCatalogoController()
 
   return (
     <div style={{ background: 'var(--cream)', minHeight: '100vh', paddingBottom: 60 }}>
