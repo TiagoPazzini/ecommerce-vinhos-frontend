@@ -65,7 +65,7 @@ export default function Carrinho() {
               Adicione vinhos ao seu carrinho para continuar
             </p>
             <button
-              onClick={() => navigate('/catalogo')}
+              onClick={() => navigate('/')}
               style={{
                 background: 'var(--wine)',
                 color: '#fff',
@@ -245,7 +245,7 @@ export default function Carrinho() {
 
               {/* Botão continuar comprando */}
               <button
-                onClick={() => navigate('/catalogo')}
+                onClick={() => navigate('/')}
                 style={{
                   background: 'transparent',
                   border: '1px solid var(--border)',

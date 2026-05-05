@@ -10,7 +10,7 @@ export class CarrinhoModel {
 
     static aumentarQuantidade(carrinho, produtoId){
         return carrinho.map(item =>
-            item.produtoId === produtoId 
+            item.produto.id === produtoId 
                 ? {...item, quantidade: item.quantidade + 1} 
                 : item
         )
@@ -36,3 +36,4 @@ export class CarrinhoModel {
         return carrinho.reduce((total, item) => total + this.calcularSubtotal(item), 0)
     }
 }
+ 
