@@ -1,13 +1,14 @@
 // src/controllers/useLoginController.js
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { AuthModel } from '../models/AuthModel'
 
 export function useLoginController() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
-  
+
   const [aba, setAba] = useState('login')
   const [form, setForm] = useState({ email: '', senha: '' })
   const [erro, setErro] = useState('')
@@ -20,21 +21,19 @@ export function useLoginController() {
     e.preventDefault()
     try {
       setErro('')
-      
+
       // Manda o Model validar
       const usuarioAutenticado = AuthModel.autenticar(form.email, form.senha)
-      
+
       // Atualiza o estado global da aplicação
       login(usuarioAutenticado)
+      
+      const destino = location.state?.from?.pathname ||
+        (usuarioAutenticado.perfil === 'admin' ? '/admin/clientes' : '/')
 
-      // Redireciona com base no perfil
-      if (usuarioAutenticado.perfil === 'admin') {
-        navigate('/admin/clientes')
-      } else {
-        navigate('/')
-      }
+      navigate(destino, { replace: true }) // Redireciona para o destino final
+
     } catch (error) {
-      // Captura o erro do Model e joga na tela
       setErro(error.message)
     }
   }

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useLocation, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
@@ -14,7 +14,9 @@ import Pedidos from './pages/Pedidos'
 
 function RotaProtegida({ children, perfil }) {
   const { usuario } = useAuth()
-  if (!usuario) return <Navigate to="/login" />
+  const location = useLocation()
+
+  if (!usuario) return <Navigate to="/login" state={{from: location}} replace />
   if (perfil && usuario.perfil !== perfil) return <Navigate to="/" />
   return children
 }
