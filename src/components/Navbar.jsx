@@ -1,12 +1,13 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useCatalogoController } from '../controllers/useCatalogoController'
+import { useCarrinhoGlobal } from '../contexts/CarrinhoContext'
 
 export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { usuario, logout } = useAuth()
-  const { quantidadeTotal } = useCatalogoController()
+  const { carrinho } = useCarrinhoGlobal()
+  const quantidadeTotal = carrinho.reduce((total, item) => total + item.quantidade, 0)
 
   if (location.pathname === '/login') return null
 
@@ -51,52 +52,18 @@ export default function Navbar() {
 
         {usuario?.perfil === 'cliente' && (
           <>
-            <button
-              onClick={() => navigate('/carrinho')}
-              style={quantidadeTotal > 0 ? {
-                position: 'relative',
-                background: 'var(--gold)',
-                color: 'var(--wine-dark)',
-                border: 'none',
-                borderRadius: 8,
-                padding: '12px 24px',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              } : {
-                background: 'transparent',
-                border: '1px solid rgba(248,244,239,0.25)',
-                borderRadius: 6,
-                padding: '7px 16px',
-                color: 'rgba(248,244,239,0.6)',
-                fontSize: 13,
-                cursor: 'pointer',
-                fontFamily: 'DM Sans, sans-serif'
-              }}>
+            <Link to="/carrinho" style={{ ...linkStyle('/carrinho'), display: 'flex', alignItems: 'center', gap: 6 }}>
               🛒 Carrinho
               {quantidadeTotal > 0 && (
                 <span style={{
-                  position: 'absolute',
-                  top: -8,
-                  right: -8,
-                  background: '#DC2626',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  width: 24,
-                  height: 24,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 700
+                  background: '#DC2626', color: '#fff', borderRadius: '50%',
+                  width: 20, height: 20, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 11, fontWeight: 700
                 }}>
                   {quantidadeTotal}
                 </span>
               )}
-            </button>
+            </Link>
             <Link to="/pedidos" style={linkStyle('/pedidos')}>Meus pedidos</Link>
           </>
         )}
@@ -118,52 +85,18 @@ export default function Navbar() {
               onMouseOut={e => { e.target.style.background = 'transparent'; e.target.style.color = 'var(--gold)' }}>
               Login
             </Link>
-            <button
-              onClick={() => navigate('/carrinho')}
-              style={quantidadeTotal > 0 ? {
-                position: 'relative',
-                background: 'var(--gold)',
-                color: 'var(--wine-dark)',
-                border: 'none',
-                borderRadius: 8,
-                padding: '12px 24px',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              } : {
-                background: 'transparent',
-                border: '1px solid rgba(248,244,239,0.25)',
-                borderRadius: 6,
-                padding: '7px 16px',
-                color: 'rgba(248,244,239,0.6)',
-                fontSize: 13,
-                cursor: 'pointer',
-                fontFamily: 'DM Sans, sans-serif'
-              }}>
+            <Link to="/carrinho" style={{ ...linkStyle('/carrinho'), display: 'flex', alignItems: 'center', gap: 6 }}>
               🛒 Carrinho
               {quantidadeTotal > 0 && (
                 <span style={{
-                  position: 'absolute',
-                  top: -8,
-                  right: -8,
-                  background: '#DC2626',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  width: 24,
-                  height: 24,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 700
+                  background: '#DC2626', color: '#fff', borderRadius: '50%',
+                  width: 20, height: 20, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 11, fontWeight: 700
                 }}>
                   {quantidadeTotal}
                 </span>
               )}
-            </button>
+            </Link>
 
           </div>
         )}

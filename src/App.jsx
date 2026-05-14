@@ -16,7 +16,7 @@ function RotaProtegida({ children, perfil }) {
   const { usuario } = useAuth()
   const location = useLocation()
 
-  if (!usuario) return <Navigate to="/login" state={{from: location}} replace />
+  if (!usuario) return <Navigate to="/login" state={{ from: location }} replace />
   if (perfil && usuario.perfil !== perfil) return <Navigate to="/" />
   return children
 }
@@ -54,9 +54,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <CarrinhoProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </CarrinhoProvider>
     </AuthProvider>
   )
 }

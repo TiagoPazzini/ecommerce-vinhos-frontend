@@ -22,4 +22,17 @@ export class AuthModel {
       perfil: encontrado.perfil 
     }
   }
+
+  static salvarSessao(usuario) {
+    localStorage.setItem('vinho_sessao', JSON.stringify(usuario))
+  }
+
+  static carregarSessao() {
+    const sessao = localStorage.getItem('vinho_sessao')
+    return sessao ? JSON.parse(sessao) : null
+  }
+
+  static limparSessao() {
+    localStorage.removeItem('vinho_sessao')
+  }
 }

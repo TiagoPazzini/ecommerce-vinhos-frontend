@@ -1,26 +1,18 @@
-// src/controllers/useCatalogoController.js
-import { useState, useEffect } from 'react'
+import { useState } from 'react' 
 import { useNavigate } from 'react-router-dom'
 import { ProdutoModel } from '../models/ProdutoModel'
 import { CarrinhoModel } from '../models/CarrinhoModel'
+import { useCarrinhoGlobal } from '../contexts/CarrinhoContext' 
 
 export function useCatalogoController() {
   const navigate = useNavigate()
   const [filtroTipo, setFiltroTipo] = useState('Todos')
-  const [carrinho, setCarrinho] = useState([])
-
-  // Carrega o carrinho inicial
-  useEffect(() => {
-    setCarrinho(CarrinhoModel.carregar())
-  }, [])
-
-  // Pede ao Model os vinhos filtrados
-  const vinhosFiltrados = ProdutoModel.listarPorTipo(filtroTipo)
   
-  // Calcula a quantidade da badge
-  const quantidadeTotal = carrinho.reduce((total, item) => total + item.quantidade, 0)
+  // Substitua o useState(carrinho) e o useEffect por esta linha:
+  const { carrinho, atualizarCarrinho } = useCarrinhoGlobal()
 
-  // Lógica de adicionar reaproveitando o CarrinhoModel
+  const vinhosFiltrados = ProdutoModel.listarPorTipo(filtroTipo)
+
   function adicionarAoCarrinho(vinho) {
     let carrinhoAtual = [...carrinho]
     const itemExistente = carrinhoAtual.find(item => item.produto.id === vinho.id)
@@ -31,14 +23,13 @@ export function useCatalogoController() {
       carrinhoAtual.push({ produto: vinho, quantidade: 1 })
     }
 
-    CarrinhoModel.salvar(carrinhoAtual)
-    setCarrinho(carrinhoAtual)
+    // Use a função global em vez de setCarrinho e CarrinhoModel.salvar
+    atualizarCarrinho(carrinhoAtual)
     alert(`${vinho.nome} adicionado ao carrinho!`)
   }
 
   return {
-    filtroTipo, setFiltroTipo,
-    vinhosFiltrados, quantidadeTotal,
+    filtroTipo, setFiltroTipo, vinhosFiltrados,
     adicionarAoCarrinho, navigate
   }
 }

@@ -61,7 +61,7 @@ export default function Pedidos() {
             <p style={{ color: 'var(--muted)', fontSize: 16, marginBottom: 24 }}>
               Você ainda não fez nenhum pedido.
             </p>
-            <button onClick={() => navigate('/catalogo')} style={{
+            <button onClick={() => navigate('/')} style={{
               background: 'var(--wine)', color: '#fff', border: 'none',
               borderRadius: 8, padding: '12px 24px', fontSize: 14, cursor: 'pointer'
             }}>
