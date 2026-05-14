@@ -1,5 +1,6 @@
 import { useLocation, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { CarrinhoProvider } from './contexts/CarrinhoContext'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Login from './pages/Login'
