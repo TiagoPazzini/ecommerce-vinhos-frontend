@@ -1,20 +1,21 @@
-// src/contexts/CarrinhoContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react'
-import { CarrinhoModel } from '../models/CarrinhoModel'
+import { CarrinhoDAO } from '../dao/CarrinhoDAO'
 
 const CarrinhoContext = createContext(null)
 
 export function CarrinhoProvider({ children }) {
   const [carrinho, setCarrinho] = useState([])
+  const dao = new CarrinhoDAO()
 
-  // Carrega os dados do Model assim que o app abre
   useEffect(() => {
-    setCarrinho(CarrinhoModel.carregar())
+    async function carregar() {
+      setCarrinho(await dao.readAll())
+    }
+    carregar()
   }, [])
 
-  // Atualiza o Model e o estado global ao mesmo tempo
-  function atualizarCarrinho(novoCarrinho) {
-    CarrinhoModel.salvar(novoCarrinho)
+  async function atualizarCarrinho(novoCarrinho) {
+    await dao.update(null, novoCarrinho)
     setCarrinho(novoCarrinho)
   }
 

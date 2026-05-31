@@ -1,8 +1,8 @@
-// src/controllers/useLoginController.js
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { AuthModel } from '../models/AuthModel'
+import { ClienteDAO } from '../dao/ClienteDAO'
 
 export function useLoginController() {
   const navigate = useNavigate()
@@ -13,19 +13,18 @@ export function useLoginController() {
   const [form, setForm] = useState({ email: '', senha: '' })
   const [erro, setErro] = useState('')
 
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
+  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }) }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     try {
       setErro('')
 
-      // Manda o Model validar
-      const usuarioAutenticado = AuthModel.autenticar(form.email, form.senha)
+      const dao = new ClienteDAO()
+      const clientes = await dao.readAll()
 
-      // Atualiza o estado global da aplicação
+      const usuarioAutenticado = AuthModel.autenticar(form.email, form.senha, clientes)
+
       login(usuarioAutenticado)
       
       const destino = usuarioAutenticado.perfil === 'admin' 
@@ -33,14 +32,10 @@ export function useLoginController() {
                 : (location.state?.from?.pathname || '/')
       
       navigate(destino, { replace: true })
-
     } catch (error) {
       setErro(error.message)
     } 
   }
 
-  return {
-    aba, setAba, form, erro, setErro,
-    handleChange, handleSubmit
-  }
+  return { aba, setAba, form, erro, setErro, handleChange, handleSubmit }
 }

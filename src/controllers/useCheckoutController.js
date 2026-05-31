@@ -1,221 +1,181 @@
-// src/controllers/useCheckoutController.js
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { VendaModel } from '../models/VendaModel'
-import { CarrinhoModel } from '../models/CarrinhoModel'
-import { ClienteModel } from '../models/ClienteModel'
+import { ClienteDAO } from '../dao/ClienteDAO'
+import { PedidoDAO } from '../dao/PedidoDAO'
+import { CupomDAO } from '../dao/CupomDAO'
+import { useCarrinhoGlobal } from '../contexts/CarrinhoContext'
 
 export function useCheckoutController() {
-    const navigate = useNavigate()
-    const { usuario } = useAuth()
+  const navigate = useNavigate()
+  const { usuario } = useAuth()
+  const { carrinho, atualizarCarrinho } = useCarrinhoGlobal()
 
-    const [adicionandoCartao, setAdicionandoCartao] = useState(false);
-    const [novoCartao, setNovoCartao] = useState({
-        numero: '', nomeImpresso: '', bandeira: '', codSeguranca: '', preferencial: false
-    });
+  const clienteDao = new ClienteDAO()
+  const pedidoDao = new PedidoDAO()
+  const cupomDao = new CupomDAO()
 
-    const [etapa, setEtapa] = useState(1)
-    const [carrinho, setCarrinho] = useState([])
-    const [cliente, setCliente] = useState(null)
-    const [erro, setErro] = useState('')
+  const [adicionandoCartao, setAdicionandoCartao] = useState(false);
+  const [novoCartao, setNovoCartao] = useState({ numero: '', nomeImpresso: '', bandeira: '', codSeguranca: '', preferencial: false });
 
-    // Etapa 1 — Entrega
-    const [enderecoSelecionado, setEnderecoSelecionado] = useState(null)
-    const [frete, setFrete] = useState(0)
+  const [etapa, setEtapa] = useState(1)
+  const [cliente, setCliente] = useState(null)
+  const [erro, setErro] = useState('')
 
-    // Etapa 2 — Pagamento
-    const [codigoCupom, setCodigoCupom] = useState('')
-    const [cuponsAplicados, setCuponsAplicados] = useState([])
-    const [cartoesSelecionados, setCartoesSelecionados] = useState([])
-    const [erroPagamento, setErroPagamento] = useState('')
+  const [enderecoSelecionado, setEnderecoSelecionado] = useState(null)
+  const [frete, setFrete] = useState(0)
 
-    const [adicionandoEndereco, setAdicionandoEndereco] = useState(false)
-    const [novoEndereco, setNovoEndereco] = useState({
-        apelido: 'Minha Casa', tipoLogradouro: 'Rua', logradouro: '',
-        numero: '', bairro: '', cep: '', cidade: '', estado: '', tipoEndereco: 'ambos'
-    })
+  const [codigoCupom, setCodigoCupom] = useState('')
+  const [cuponsAplicados, setCuponsAplicados] = useState([])
+  const [cartoesSelecionados, setCartoesSelecionados] = useState([])
+  const [erroPagamento, setErroPagamento] = useState('')
 
-    useEffect(() => {
-        setCarrinho(CarrinhoModel.carregar())
+  const [adicionandoEndereco, setAdicionandoEndereco] = useState(false)
+  const [novoEndereco, setNovoEndereco] = useState({
+      apelido: 'Minha Casa', tipoLogradouro: 'Rua', logradouro: '',
+      numero: '', bairro: '', cep: '', cidade: '', estado: '', tipoEndereco: 'ambos'
+  })
 
-        const clientes = ClienteModel.listar()
-        const clienteLogado = clientes.find(c => c.email === usuario?.email)
-        if (clienteLogado) setCliente(clienteLogado)
-    }, [usuario])
-
-    // Cálculos
-    const subtotal = carrinho.reduce((t, item) => t + item.produto.preco * item.quantidade, 0)
-    const descontoCupons = cuponsAplicados.reduce((t, c) => t + c.valor, 0)
-    const totalComFrete = Math.max(0, subtotal + frete - descontoCupons)
-
-    function calcularFrete(cep) {
-        const inicio = cep.replace(/\D/g, '')[0]
-        if (['0', '1'].includes(inicio)) return 15
-        if (['2', '3'].includes(inicio)) return 20
-        return 25
+  useEffect(() => {
+    async function carregarCliente() {
+      if (!usuario?.email) return;
+      const clientes = await clienteDao.readAll();
+      const clienteLogado = clientes.find(c => c.email === usuario.email);
+      if (clienteLogado) setCliente(clienteLogado);
     }
+    carregarCliente();
+  }, [usuario])
 
-    function handleSelecionarEndereco(end) {
-        setEnderecoSelecionado(end)
-        setFrete(VendaModel.calcularFrete(end.cep))
-    }
+  const subtotal = carrinho.reduce((t, item) => t + item.produto.preco * item.quantidade, 0)
+  const descontoCupons = cuponsAplicados.reduce((t, c) => t + c.valor, 0)
+  const totalComFrete = Math.max(0, subtotal + frete - descontoCupons)
 
-    function handleProximaEtapa() {
-        setErro('')
-        if (etapa === 1) {
-            if (!enderecoSelecionado) return setErro('Selecione um endereço de entrega.')
-            setEtapa(2)
-        } else if (etapa === 2) {
-            // Soma o que o cliente digitou nos cartões
-            const totalPagoCartoes = cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
-            
-            // A regra é simples: Os cartões têm que cobrir o totalComFrete exato (que já descontou os cupons)
-            if (totalPagoCartoes < totalComFrete) {
-                return setErroPagamento(`Falta R$ ${(totalComFrete - totalPagoCartoes).toFixed(2)} no(s) cartão(ões).`)
-            }
-            
-            setErroPagamento('')
-            setEtapa(3)
-        }
-    }
+  function handleSelecionarEndereco(end) {
+      setEnderecoSelecionado(end)
+      setFrete(VendaModel.calcularFrete(end.cep))
+  }
 
-    function handleAplicarCupom() {
-        setErro('')
-        const cupom = VendaModel.buscarCupom(codigoCupom)
-        if (!cupom) return setErro('Cupom inválido.')
+  function handleProximaEtapa() {
+      setErro('')
+      if (etapa === 1) {
+          if (!enderecoSelecionado) return setErro('Selecione um endereço de entrega.')
+          setEtapa(2)
+      } else if (etapa === 2) {
+          const totalPagoCartoes = cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
+          if (totalPagoCartoes < totalComFrete) {
+              return setErroPagamento(`Falta R$ ${(totalComFrete - totalPagoCartoes).toFixed(2)} no(s) cartão(ões).`)
+          }
+          setErroPagamento('')
+          setEtapa(3)
+      }
+  }
 
-        const jaAplicado = cuponsAplicados.find(c => c.codigo === cupom.codigo)
-        if (jaAplicado) return setErro('Este cupom já foi aplicado.')
+  async function handleAplicarCupom() {
+      setErro('')
+      const cupom = await cupomDao.read(codigoCupom)
+      if (!cupom) return setErro('Cupom inválido.')
 
-        const temPromocional = cuponsAplicados.find(c => c.tipo === 'promocional')
-        if (cupom.tipo === 'promocional' && temPromocional) {
-            return setErro('Apenas um cupom promocional por compra. (RN0033)')
-        }
+      const jaAplicado = cuponsAplicados.find(c => c.codigo === cupom.codigo)
+      if (jaAplicado) return setErro('Este cupom já foi aplicado.')
 
-        setCuponsAplicados([...cuponsAplicados, cupom])
-        setCodigoCupom('')
-    }
+      const temPromocional = cuponsAplicados.find(c => c.tipo === 'promocional')
+      if (cupom.tipo === 'promocional' && temPromocional) {
+          return setErro('Apenas um cupom promocional por compra. (RN0033)')
+      }
 
-    function handleRemoverCupom(codigo) {
-        setCuponsAplicados(cuponsAplicados.filter(c => c.codigo !== codigo))
-    }
+      setCuponsAplicados([...cuponsAplicados, cupom])
+      setCodigoCupom('')
+  }
 
-    function handleToggleCartao(cartao) {
-        const existe = cartoesSelecionados.find(c => c.numero === cartao.numero)
-        if (existe) {
-            setCartoesSelecionados(cartoesSelecionados.filter(c => c.numero !== cartao.numero))
-        } else {
-            setCartoesSelecionados([...cartoesSelecionados, { ...cartao, valor: '' }])
-        }
-    }
+  function handleRemoverCupom(codigo) {
+      setCuponsAplicados(cuponsAplicados.filter(c => c.codigo !== codigo))
+  }
 
-    function handleValorCartao(numero, valor) {
-        setCartoesSelecionados(cartoesSelecionados.map(c =>
-            c.numero === numero ? { ...c, valor } : c
-        ))
-    }
+  function handleToggleCartao(cartao) {
+      const existe = cartoesSelecionados.find(c => c.numero === cartao.numero)
+      if (existe) setCartoesSelecionados(cartoesSelecionados.filter(c => c.numero !== cartao.numero))
+      else setCartoesSelecionados([...cartoesSelecionados, { ...cartao, valor: '' }])
+  }
 
-    function validarValorCartao(cartao) {
-        const val = parseFloat(cartao.valor) || 0
-        const temCupom = descontoCupons > 0
-        if (temCupom) return true
-        return val >= 10
-    }
+  function handleValorCartao(numero, valor) {
+      setCartoesSelecionados(cartoesSelecionados.map(c => c.numero === numero ? { ...c, valor } : c ))
+  }
 
-    // Apenas a versão correta, que delega as regras para o VendaModel
-    function handleConfirmar() {
-        try {
-            setErro('')
+  function validarValorCartao(cartao) {
+      const val = parseFloat(cartao.valor) || 0
+      const temCupom = descontoCupons > 0
+      if (temCupom) return true
+      return val >= 10
+  }
 
-            if (cliente?.dataNascimento) {
-                VendaModel.validarMaioridade(cliente.dataNascimento)
-            }
+  async function handleConfirmar() {
+      try {
+          setErro('')
+          if (cliente?.dataNascimento) VendaModel.validarMaioridade(cliente.dataNascimento)
+          
+          VendaModel.validarPagamento(cartoesSelecionados, descontoCupons)
 
-            VendaModel.validarPagamento(cartoesSelecionados, descontoCupons)
+          const pedido = {
+              id: Date.now(), clienteId: cliente?.id, clienteEmail: usuario?.email,
+              itens: carrinho, enderecoEntrega: enderecoSelecionado,
+              formasPagamento: { cupons: cuponsAplicados, cartoes: cartoesSelecionados },
+              frete, subtotal, descontoCupons, total: totalComFrete,
+              status: 'EM PROCESSAMENTO', dataPedido: new Date().toISOString()
+          }
 
-            const pedido = {
-                id: Date.now(), clienteId: cliente?.id, clienteEmail: usuario?.email,
-                itens: carrinho, enderecoEntrega: enderecoSelecionado,
-                formasPagamento: { cupons: cuponsAplicados, cartoes: cartoesSelecionados },
-                frete, subtotal, descontoCupons, total: totalComFrete,
-                status: 'EM PROCESSAMENTO', dataPedido: new Date().toISOString()
-            }
+          await pedidoDao.create(pedido)
+          await atualizarCarrinho([])
+          navigate('/pedidos?sucesso=true')
 
-            VendaModel.salvarPedido(pedido)
-            navigate('/pedidos?sucesso=true')
+      } catch (error) {
+          setErro(error.message)
+      }
+  }
 
-        } catch (error) {
-            setErro(error.message)
-        }
-    }
+  function handleNovoEnderecoChange(e) {
+      setNovoEndereco({ ...novoEndereco, [e.target.name]: e.target.value })
+  }
 
-    function handleNovoEnderecoChange(e) {
-        setNovoEndereco({ ...novoEndereco, [e.target.name]: e.target.value })
-    }
+  async function handleSalvarEndereco(e) {
+      e.preventDefault();
+      setErro('');
+      if (!cliente) return setErro('Erro crítico: Perfil do cliente não encontrado.');
 
+      const enderecosAtualizados = cliente.enderecos ? [...cliente.enderecos, novoEndereco] : [novoEndereco];
+      await clienteDao.update(cliente.id, { enderecos: enderecosAtualizados });
+      setCliente({ ...cliente, enderecos: enderecosAtualizados });
+      setEnderecoSelecionado(novoEndereco);
+      setFrete(VendaModel.calcularFrete(novoEndereco.cep));
+      setAdicionandoEndereco(false);
+      setNovoEndereco({ apelido: '', tipoLogradouro: 'Rua', logradouro: '', numero: '', cep: '', bairro: '', cidade: '', estado: '', tipoEndereco: 'ambos' });
+  }
 
-    function handleSalvarEndereco(e) {
-        e.preventDefault();
-        setErro('');
+  function handleNovoCartaoChange(e) {
+      const { name, value, type, checked } = e.target;
+      setNovoCartao({ ...novoCartao, [name]: type === 'checkbox' ? checked : value });
+  }
 
-        // Proteção: verifica se o cliente foi encontrado na base
-        if (!cliente) {
-            setErro('Erro crítico: Perfil do cliente não encontrado para salvar o endereço.');
-            return;
-        }
+  async function handleSalvarCartao(e) {
+      e.preventDefault();
+      if (!cliente) return;
 
-        const enderecosAtualizados = cliente.enderecos ? [...cliente.enderecos, novoEndereco] : [novoEndereco];
+      const cartoesAtualizados = cliente.cartoes ? [...cliente.cartoes, novoCartao] : [novoCartao];
+      await clienteDao.update(cliente.id, { cartoes: cartoesAtualizados });
+      setCliente({ ...cliente, cartoes: cartoesAtualizados });
+      setCartoesSelecionados([...cartoesSelecionados, { ...novoCartao, valor: '' }]);
+      setAdicionandoCartao(false);
+      setNovoCartao({ numero: '', nomeImpresso: '', bandeira: '', codSeguranca: '', preferencial: false });
+  }
 
-        // 1. Salva permanentemente no localStorage através do Model
-        ClienteModel.atualizar(cliente.id, { enderecos: enderecosAtualizados });
-
-        // 2. Atualiza o estado local do cliente
-        setCliente({ ...cliente, enderecos: enderecosAtualizados });
-
-        // 3. SELEÇÃO AUTOMÁTICA: Define o novo endereço como o selecionado para o checkout
-        setEnderecoSelecionado(novoEndereco);
-        setFrete(VendaModel.calcularFrete(novoEndereco.cep)); // Calcula o frete imediatamente
-
-        // 4. Limpa e fecha o formulário
-        setAdicionandoEndereco(false);
-        setNovoEndereco({ ...novoEndereco, logradouro: '', numero: '', cep: '', bairro: '', cidade: '', estado: '' });
-    }
-
-    function handleNovoCartaoChange(e) {
-        const { name, value, type, checked } = e.target;
-        setNovoCartao({ ...novoCartao, [name]: type === 'checkbox' ? checked : value });
-    }
-
-    function handleSalvarCartao(e) {
-        e.preventDefault();
-        if (!cliente) return;
-
-        const cartoesAtualizados = cliente.cartoes ? [...cliente.cartoes, novoCartao] : [novoCartao];
-
-        // Salva no banco (localStorage) via Model
-        ClienteModel.atualizar(cliente.id, { cartoes: cartoesAtualizados });
-
-        // Atualiza a tela
-        setCliente({ ...cliente, cartoes: cartoesAtualizados });
-
-        // Seleção automática para o pagamento atual
-        setCartoesSelecionados([...cartoesSelecionados, { ...novoCartao, valor: '' }]);
-
-        setAdicionandoCartao(false);
-        setNovoCartao({ numero: '', nomeImpresso: '', bandeira: '', codSeguranca: '', preferencial: false });
-    }
-
-    return {
-        etapa, setEtapa, carrinho, cliente, erro, enderecoSelecionado,
-        frete, codigoCupom, setCodigoCupom, cuponsAplicados, cartoesSelecionados,
-        erroPagamento, subtotal, descontoCupons, totalComFrete,
-        handleSelecionarEndereco, handleProximaEtapa, handleAplicarCupom,
-        handleRemoverCupom, handleToggleCartao, handleValorCartao,
-        validarValorCartao,
-        calcularFrete: VendaModel.calcularFrete,
-        handleConfirmar, adicionandoEndereco, setAdicionandoEndereco, novoEndereco,
-        handleNovoEnderecoChange, handleSalvarEndereco, adicionandoCartao, setAdicionandoCartao, novoCartao,
-        handleNovoCartaoChange, handleSalvarCartao
-    }
+  return {
+      etapa, setEtapa, carrinho, cliente, erro, enderecoSelecionado,
+      frete, codigoCupom, setCodigoCupom, cuponsAplicados, cartoesSelecionados,
+      erroPagamento, subtotal, descontoCupons, totalComFrete, handleSelecionarEndereco, 
+      handleProximaEtapa, handleAplicarCupom, handleRemoverCupom, handleToggleCartao, 
+      handleValorCartao, validarValorCartao, calcularFrete: VendaModel.calcularFrete,
+      handleConfirmar, adicionandoEndereco, setAdicionandoEndereco, novoEndereco,
+      handleNovoEnderecoChange, handleSalvarEndereco, adicionandoCartao, setAdicionandoCartao, 
+      novoCartao, handleNovoCartaoChange, handleSalvarCartao
+  }
 }

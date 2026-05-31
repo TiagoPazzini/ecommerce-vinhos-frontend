@@ -1,8 +1,8 @@
-// src/controllers/useClienteCadastroController.js
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ClienteModel } from '../models/ClienteModel'
-import { useAuth } from '../contexts/AuthContext' 
+import { ClienteDAO } from '../dao/ClienteDAO' // <-- Nova importação
+import { useAuth } from '../contexts/AuthContext'
 
 const enderecoVazio = () => ({
   apelido: '', tipoResidencia: '', tipoLogradouro: '',
@@ -55,23 +55,24 @@ export function useClienteCadastroController() {
   function adicionarCartao() { setCartoes([...cartoes, cartaoVazio()]) }
   function removerCartao(index) { if (cartoes.length > 1) setCartoes(cartoes.filter((_, i) => i !== index)) }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     try {
       setErro('')
 
-      // Chama a validação pura do Model
+      // 1. Model valida as regras de negócio
       ClienteModel.validarCadastro(form, enderecos)
 
-      // Se passou nas validações, salva!
-      ClienteModel.cadastrar({ ...form, enderecos, cartoes })
+      // 2. Instancia o DAO e salva no banco de forma assíncrona
+      const clienteDAO = new ClienteDAO()
+      await clienteDAO.create({ ...form, enderecos, cartoes })
 
       const usuarioSessao = {
         nome: form.nome,
         email: form.email, 
         perfil: 'cliente'
       };
-      login (usuarioSessao);
+      login(usuarioSessao);
 
       const destino = location.state?.from?.pathname || (isAdmin ? '/admin/clientes' : '/')
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { PedidoModel } from '../models/PedidoModel'
+import { PedidoDAO } from '../dao/PedidoDAO'
 
 export function usePedidosController() {
   const navigate = useNavigate()
@@ -12,33 +13,34 @@ export function usePedidosController() {
 
   const [pedidos, setPedidos] = useState([])
   const [expandido, setExpandido] = useState(null)
+  
+  const dao = new PedidoDAO()
+
+  async function carregarPedidos() {
+    if (usuario?.email) {
+      const todos = await dao.readAll()
+      const meus = todos.filter(p => p.clienteEmail === usuario.email)
+      setPedidos(meus.reverse())
+    }
+  }
 
   useEffect(() => {
-    if (usuario?.email) {
-      setPedidos(PedidoModel.listarPorCliente(usuario.email))
-    }
+    carregarPedidos()
   }, [usuario])
 
   function toggleExpandido(id) {
     setExpandido(expandido === id ? null : id)
   }
 
-  // --- FUNÇÃO DE SOLICITAÇÃO DE TROCA ---
-  function handleSolicitarTroca(pedidoId) {
+  async function handleSolicitarTroca(pedidoId) {
     if (window.confirm('Deseja solicitar a troca/devolução deste pedido? O Administrador avaliará o pedido.')) {
-      PedidoModel.atualizarStatus(pedidoId, 'EM TROCA')
-      // Atualiza a lista na tela instantaneamente
-      setPedidos(PedidoModel.listarPorCliente(usuario.email))
+      await dao.update(pedidoId, { status: 'EM TROCA' })
+      await carregarPedidos()
     }
   }
 
   return {
-    pedidos,
-    expandido,
-    sucesso,
-    toggleExpandido,
-    handleSolicitarTroca, // <-- Exportando a função para o botão usar
-    formatarData: PedidoModel.formatarData,
-    navigate
+    pedidos, expandido, sucesso, toggleExpandido, handleSolicitarTroca,
+    formatarData: PedidoModel.formatarData, navigate
   }
 }

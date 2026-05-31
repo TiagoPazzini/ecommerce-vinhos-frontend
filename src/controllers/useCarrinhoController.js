@@ -1,31 +1,22 @@
-import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CarrinhoModel } from '../models/CarrinhoModel'
+import { useCarrinhoGlobal } from '../contexts/CarrinhoContext'
 
 export function useCarrinhoController() {
   const navigate = useNavigate()
-  const [carrinho, setCarrinho] = useState([])
+  const { carrinho, atualizarCarrinho } = useCarrinhoGlobal()
 
-  useEffect(() => {
-    setCarrinho(CarrinhoModel.carregar())
-  }, [])
-
-  function atualizarESalvar(novoCarrinho) {
-    CarrinhoModel.salvar(novoCarrinho)
-    setCarrinho(novoCarrinho)
+  async function aumentarQuantidade(produtoId) {
+    await atualizarCarrinho(CarrinhoModel.aumentarQuantidade(carrinho, produtoId))
   }
 
-  function aumentarQuantidade(produtoId) {
-    atualizarESalvar(CarrinhoModel.aumentarQuantidade(carrinho, produtoId))
+  async function diminuirQuantidade(produtoId) {
+    await atualizarCarrinho(CarrinhoModel.diminuirQuantidade(carrinho, produtoId))
   }
 
-  function diminuirQuantidade(produtoId) {
-    atualizarESalvar(CarrinhoModel.diminuirQuantidade(carrinho, produtoId))
-  }
-
-  function removerItem(produtoId) {
+  async function removerItem(produtoId) {
     if (window.confirm('Deseja remover este item do carrinho?')) {
-      atualizarESalvar(CarrinhoModel.removerItem(carrinho, produtoId))
+      await atualizarCarrinho(CarrinhoModel.removerItem(carrinho, produtoId))
     }
   }
 
@@ -45,6 +36,6 @@ export function useCarrinhoController() {
     finalizarCompra,
     calcularSubtotal: CarrinhoModel.calcularSubtotal,
     calcularTotal: () => CarrinhoModel.calcularTotal(carrinho),
-    navigate // Exportado para os botões de voltar ao catálogo funcionarem
+    navigate
   }
 }

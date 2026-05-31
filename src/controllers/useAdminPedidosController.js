@@ -1,64 +1,60 @@
-// src/controllers/useAdminPedidosController.js
 import { useState, useEffect } from 'react'
 import { PedidoModel } from '../models/PedidoModel'
-import { VendaModel } from '../models/VendaModel' // <-- Importante
+import { VendaModel } from '../models/VendaModel'
+import { PedidoDAO } from '../dao/PedidoDAO'
+import { CupomDAO } from '../dao/CupomDAO'
 
 export function useAdminPedidosController() {
   const [pedidos, setPedidos] = useState([])
+  const pedidoDao = new PedidoDAO()
+  const cupomDao = new CupomDAO()
 
-  function carregarPedidos() {
-    const todos = PedidoModel.listarTodos()
+  async function carregarPedidos() {
+    const todos = await pedidoDao.readAll()
     setPedidos(todos.reverse())
   }
 
   useEffect(() => { carregarPedidos() }, [])
 
-  function handleMudarStatus(pedidoId, novoStatus) {
+  async function handleMudarStatus(pedidoId, novoStatus) {
     if (window.confirm(`Mudar este pedido para "${novoStatus}"?`)) {
-      PedidoModel.atualizarStatus(pedidoId, novoStatus)
-      carregarPedidos() 
+      await pedidoDao.update(pedidoId, { status: novoStatus })
+      await carregarPedidos() 
     }
   }
 
-  // --- NOVAS FUNÇÕES DE TROCA ---
-
-  function handleAutorizarTroca(pedidoId) {
+  async function handleAutorizarTroca(pedidoId) {
     if (window.confirm('Autorizar a troca deste pedido?')) {
-      PedidoModel.atualizarStatus(pedidoId, 'TROCA AUTORIZADA')
-      carregarPedidos()
+      await pedidoDao.update(pedidoId, { status: 'TROCA AUTORIZADA' })
+      await carregarPedidos()
     }
   }
 
-  function handleNegarTroca(pedidoId) {
+  async function handleNegarTroca(pedidoId) {
     if (window.confirm('Negar a troca? O pedido voltará para o status ENTREGUE.')) {
-      PedidoModel.atualizarStatus(pedidoId, 'ENTREGUE')
-      carregarPedidos()
+      await pedidoDao.update(pedidoId, { status: 'ENTREGUE' })
+      await carregarPedidos()
     }
   }
 
-  function handleConfirmarRecebimento(pedidoId) {
+  async function handleConfirmarRecebimento(pedidoId) {
     if (window.confirm('Confirmar recebimento do produto devolvido e gerar cupom de troca?')) {
-      const pedido = PedidoModel.buscarPorId(pedidoId)
+      const pedido = await pedidoDao.read(pedidoId)
       
       if (pedido) {
-        // 1. Atualiza status para TROCADO
-        PedidoModel.atualizarStatus(pedidoId, 'TROCADO')
+        await pedidoDao.update(pedidoId, { status: 'TROCADO' })
         
-        // 2. Gera o cupom com o valor total da compra
-        const codigoCupom = VendaModel.gerarCupomTroca(pedido.total)
+        const codigoCupom = VendaModel.gerarCodigoCupomTroca()
+        await cupomDao.create({ codigo: codigoCupom, tipo: 'troca', valor: pedido.total })
         
         alert(`Produto recebido em estoque!\n\nUm cupom de troca foi gerado com sucesso: ${codigoCupom}\nValor: R$ ${pedido.total.toFixed(2)}`)
-        carregarPedidos()
+        await carregarPedidos()
       }
     }
   }
 
   return {
-    pedidos,
-    handleMudarStatus,
-    handleAutorizarTroca,
-    handleNegarTroca,
-    handleConfirmarRecebimento,
-    formatarData: PedidoModel.formatarData
+    pedidos, handleMudarStatus, handleAutorizarTroca,
+    handleNegarTroca, handleConfirmarRecebimento, formatarData: PedidoModel.formatarData
   }
 }

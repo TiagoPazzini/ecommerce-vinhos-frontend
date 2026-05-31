@@ -1,30 +1,35 @@
-// src/controllers/useMeuPerfilController.js
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { ClienteModel } from '../models/ClienteModel'
+import { ClienteDAO } from '../dao/ClienteDAO'
 
 export function useMeuPerfilController() {
   const { usuario } = useAuth()
   const [cliente, setCliente] = useState(null)
   const [mensagem, setMensagem] = useState('')
+  
+  const dao = new ClienteDAO()
 
   useEffect(() => {
-    // Busca o cliente logado pelo e-mail
-    const todosClientes = ClienteModel.listar()
-    const clienteLogado = todosClientes.find(c => c.email === usuario?.email)
-    if (clienteLogado) {
-      setCliente(clienteLogado)
+    async function carregarPerfil() {
+      if (usuario?.email) {
+        const todosClientes = await dao.readAll()
+        const clienteLogado = todosClientes.find(c => c.email === usuario.email)
+        if (clienteLogado) {
+          setCliente(clienteLogado)
+        }
+      }
     }
+    carregarPerfil()
   }, [usuario])
 
   function handleChange(e) {
     setCliente({ ...cliente, [e.target.name]: e.target.value })
   }
 
-  function handleSalvar(e) {
+  async function handleSalvar(e) {
     e.preventDefault()
     try {
-      ClienteModel.atualizar(cliente.id, cliente)
+      await dao.update(cliente.id, cliente)
       setMensagem('Dados atualizados com sucesso!')
       setTimeout(() => setMensagem(''), 3000)
     } catch (error) {
@@ -32,7 +37,6 @@ export function useMeuPerfilController() {
     }
   }
 
-  // Funções simplificadas para remover endereços/cartões (Adicionar faremos depois se necessário)
   function handleRemoverEndereco(index) {
     if (cliente.enderecos.length <= 1) return alert('Você deve ter pelo menos um endereço.')
     const novos = cliente.enderecos.filter((_, i) => i !== index)
