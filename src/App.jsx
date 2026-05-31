@@ -11,6 +11,8 @@ import ClienteCadastro from './pages/clientes/ClienteCadastro'
 import ClienteEdicao from './pages/clientes/ClienteEdicao'
 import Checkout from './pages/Checkout'
 import Pedidos from './pages/Pedidos'
+import AdminPedidos from './pages/AdminPedidos'
+import MeuPerfil from './pages/MeuPerfil'
 
 
 function RotaProtegida({ children, perfil }) {
@@ -46,6 +48,12 @@ function AppRoutes() {
         } />
         <Route path="/admin/clientes/:id" element={
           <RotaProtegida perfil="admin"><ClienteEdicao /></RotaProtegida>
+        } />
+        <Route path="/admin/pedidos" element={
+          <RotaProtegida perfil="admin"><AdminPedidos /></RotaProtegida>
+        } />
+        <Route path="/perfil" element={
+          <RotaProtegida perfil="cliente"><MeuPerfil /></RotaProtegida>
         } />
       </Routes>
     </>

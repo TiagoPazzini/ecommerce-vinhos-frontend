@@ -17,7 +17,8 @@ export default function Pedidos() {
     sucesso,
     toggleExpandido,
     formatarData,
-    navigate
+    navigate, 
+    handleSolicitarTroca,
   } = usePedidosController()
 
   return (
@@ -142,6 +143,17 @@ export default function Pedidos() {
                       {c.bandeira} •••• {c.numero.slice(-4)}: R$ {parseFloat(c.valor).toFixed(2)}
                     </p>
                   ))}
+                  
+                  {pedido.status === 'ENTREGUE' && (
+                    <div style={{ borderTop: '1px solid var(--border)', marginTop: 16, paddingTop: 16 }}>
+                      <button onClick={() => handleSolicitarTroca(pedido.id)} style={{
+                        background: 'transparent', border: '1px solid #991B1B', color: '#991B1B',
+                        borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif'
+                      }}>
+                        Solicitar Troca / Devolução
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

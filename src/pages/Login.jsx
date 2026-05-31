@@ -1,8 +1,9 @@
 // src/pages/Login.jsx
-import { Link } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import { useLoginController } from '../controllers/useLoginController'
 
 export default function Login() {
+  const location = useLocation();
   const {
     aba, setAba, form, erro, setErro,
     handleChange, handleSubmit
@@ -92,11 +93,14 @@ export default function Login() {
               <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 20 }}>
                 Preencha seus dados para criar uma conta de cliente.
               </p>
-              <Link to="/cadastro" style={{
-                display: 'block', background: 'var(--wine)', color: '#fff',
-                borderRadius: 8, padding: '12px', fontSize: 14, fontWeight: 500,
-                textDecoration: 'none', fontFamily: 'DM Sans, sans-serif'
-              }}>
+              <Link
+                to="/cadastro"
+                state={location.state}
+                style={{
+                  display: 'block', background: 'var(--wine)', color: '#fff',
+                  borderRadius: 8, padding: '12px', fontSize: 14, fontWeight: 500,
+                  textDecoration: 'none', fontFamily: 'DM Sans, sans-serif'
+                }}>
                 Ir para o cadastro
               </Link>
             </div>

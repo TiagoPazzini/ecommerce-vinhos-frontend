@@ -10,11 +10,16 @@ export function useCheckoutController() {
     const navigate = useNavigate()
     const { usuario } = useAuth()
 
+    const [adicionandoCartao, setAdicionandoCartao] = useState(false);
+    const [novoCartao, setNovoCartao] = useState({
+        numero: '', nomeImpresso: '', bandeira: '', codSeguranca: '', preferencial: false
+    });
+
     const [etapa, setEtapa] = useState(1)
     const [carrinho, setCarrinho] = useState([])
     const [cliente, setCliente] = useState(null)
     const [erro, setErro] = useState('')
-    
+
     // Etapa 1 — Entrega
     const [enderecoSelecionado, setEnderecoSelecionado] = useState(null)
     const [frete, setFrete] = useState(0)
@@ -26,9 +31,9 @@ export function useCheckoutController() {
     const [erroPagamento, setErroPagamento] = useState('')
 
     const [adicionandoEndereco, setAdicionandoEndereco] = useState(false)
-    const [novoEndereco, setNovoEndereco] = useState({ 
-        apelido: 'Minha Casa', tipoLogradouro: 'Rua', logradouro: '', 
-        numero: '', bairro: '', cep: '', cidade: '', estado: '', tipoEndereco: 'ambos' 
+    const [novoEndereco, setNovoEndereco] = useState({
+        apelido: 'Minha Casa', tipoLogradouro: 'Rua', logradouro: '',
+        numero: '', bairro: '', cep: '', cidade: '', estado: '', tipoEndereco: 'ambos'
     })
 
     useEffect(() => {
@@ -42,7 +47,7 @@ export function useCheckoutController() {
     // Cálculos
     const subtotal = carrinho.reduce((t, item) => t + item.produto.preco * item.quantidade, 0)
     const descontoCupons = cuponsAplicados.reduce((t, c) => t + c.valor, 0)
-    const totalComFrete = subtotal + frete - descontoCupons
+    const totalComFrete = Math.max(0, subtotal + frete - descontoCupons)
 
     function calcularFrete(cep) {
         const inicio = cep.replace(/\D/g, '')[0]
@@ -62,11 +67,14 @@ export function useCheckoutController() {
             if (!enderecoSelecionado) return setErro('Selecione um endereço de entrega.')
             setEtapa(2)
         } else if (etapa === 2) {
+            // Soma o que o cliente digitou nos cartões
             const totalPagoCartoes = cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
-            const totalPago = totalPagoCartoes + descontoCupons
-            if (totalPago < totalComFrete) {
-                return setErroPagamento(`Falta R$ ${(totalComFrete - totalPago).toFixed(2)} para cobrir o total.`)
+            
+            // A regra é simples: Os cartões têm que cobrir o totalComFrete exato (que já descontou os cupons)
+            if (totalPagoCartoes < totalComFrete) {
+                return setErroPagamento(`Falta R$ ${(totalComFrete - totalPagoCartoes).toFixed(2)} no(s) cartão(ões).`)
             }
+            
             setErroPagamento('')
             setEtapa(3)
         }
@@ -111,7 +119,7 @@ export function useCheckoutController() {
     function validarValorCartao(cartao) {
         const val = parseFloat(cartao.valor) || 0
         const temCupom = descontoCupons > 0
-        if (temCupom) return true 
+        if (temCupom) return true
         return val >= 10
     }
 
@@ -119,7 +127,7 @@ export function useCheckoutController() {
     function handleConfirmar() {
         try {
             setErro('')
-            
+
             if (cliente?.dataNascimento) {
                 VendaModel.validarMaioridade(cliente.dataNascimento)
             }
@@ -146,20 +154,56 @@ export function useCheckoutController() {
         setNovoEndereco({ ...novoEndereco, [e.target.name]: e.target.value })
     }
 
+
     function handleSalvarEndereco(e) {
-        e.preventDefault()
-        setErro('')
-        
-        // Pega os endereços que o cliente já tem e adiciona o novo
-        const enderecosAtualizados = cliente.enderecos ? [...cliente.enderecos, novoEndereco] : [novoEndereco]
-        
-        // Manda o ClienteModel salvar no "banco"
-        ClienteModel.atualizar(cliente.id, { enderecos: enderecosAtualizados })
-        
-        // Atualiza a tela imediatamente
-        setCliente({ ...cliente, enderecos: enderecosAtualizados })
-        setAdicionandoEndereco(false) // Esconde o formulário
-        setNovoEndereco({ ...novoEndereco, logradouro: '', numero: '', cep: '', bairro: '', cidade: '', estado: '' }) // Limpa o form
+        e.preventDefault();
+        setErro('');
+
+        // Proteção: verifica se o cliente foi encontrado na base
+        if (!cliente) {
+            setErro('Erro crítico: Perfil do cliente não encontrado para salvar o endereço.');
+            return;
+        }
+
+        const enderecosAtualizados = cliente.enderecos ? [...cliente.enderecos, novoEndereco] : [novoEndereco];
+
+        // 1. Salva permanentemente no localStorage através do Model
+        ClienteModel.atualizar(cliente.id, { enderecos: enderecosAtualizados });
+
+        // 2. Atualiza o estado local do cliente
+        setCliente({ ...cliente, enderecos: enderecosAtualizados });
+
+        // 3. SELEÇÃO AUTOMÁTICA: Define o novo endereço como o selecionado para o checkout
+        setEnderecoSelecionado(novoEndereco);
+        setFrete(VendaModel.calcularFrete(novoEndereco.cep)); // Calcula o frete imediatamente
+
+        // 4. Limpa e fecha o formulário
+        setAdicionandoEndereco(false);
+        setNovoEndereco({ ...novoEndereco, logradouro: '', numero: '', cep: '', bairro: '', cidade: '', estado: '' });
+    }
+
+    function handleNovoCartaoChange(e) {
+        const { name, value, type, checked } = e.target;
+        setNovoCartao({ ...novoCartao, [name]: type === 'checkbox' ? checked : value });
+    }
+
+    function handleSalvarCartao(e) {
+        e.preventDefault();
+        if (!cliente) return;
+
+        const cartoesAtualizados = cliente.cartoes ? [...cliente.cartoes, novoCartao] : [novoCartao];
+
+        // Salva no banco (localStorage) via Model
+        ClienteModel.atualizar(cliente.id, { cartoes: cartoesAtualizados });
+
+        // Atualiza a tela
+        setCliente({ ...cliente, cartoes: cartoesAtualizados });
+
+        // Seleção automática para o pagamento atual
+        setCartoesSelecionados([...cartoesSelecionados, { ...novoCartao, valor: '' }]);
+
+        setAdicionandoCartao(false);
+        setNovoCartao({ numero: '', nomeImpresso: '', bandeira: '', codSeguranca: '', preferencial: false });
     }
 
     return {
@@ -169,8 +213,9 @@ export function useCheckoutController() {
         handleSelecionarEndereco, handleProximaEtapa, handleAplicarCupom,
         handleRemoverCupom, handleToggleCartao, handleValorCartao,
         validarValorCartao,
-        calcularFrete: VendaModel.calcularFrete, 
+        calcularFrete: VendaModel.calcularFrete,
         handleConfirmar, adicionandoEndereco, setAdicionandoEndereco, novoEndereco,
-        handleNovoEnderecoChange, handleSalvarEndereco
+        handleNovoEnderecoChange, handleSalvarEndereco, adicionandoCartao, setAdicionandoCartao, novoCartao,
+        handleNovoCartaoChange, handleSalvarCartao
     }
 }

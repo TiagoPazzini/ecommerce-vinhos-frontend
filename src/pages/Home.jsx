@@ -59,7 +59,7 @@ export default function Home() {
                 border: 'none', borderRadius: 8, padding: '14px 28px',
                 fontSize: 14, fontWeight: 600, cursor: 'pointer'
               }}>
-              Explorar vinhos ↓
+              Explorar vinhos 
             </button>
           </div>
 

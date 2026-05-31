@@ -6,8 +6,35 @@ const CUPONS_MOCK = [
 
 export class VendaModel {
 
+    static listarCupons() {
+        const cupons = localStorage.getItem('vinho_cupons')
+        if (!cupons) {
+            // Se o banco de cupons estiver vazio, cria os de teste iniciais
+            const iniciais = [
+                { codigo: 'PROMO10', tipo: 'promocional', valor: 10 },
+                { codigo: 'TROCA20', tipo: 'troca', valor: 20 },
+            ]
+            localStorage.setItem('vinho_cupons', JSON.stringify(iniciais))
+            return iniciais
+        }
+        return JSON.parse(cupons)
+    }
+
     static buscarCupom(codigo) {
-        return CUPONS_MOCK.find(c => c.codigo === codigo.toUpperCase()) || null
+        return this.listarCupons().find(c => c.codigo === codigo.toUpperCase()) || null
+    }
+
+    // RN0044 - Gerar cupom de troca após recebimento
+    static gerarCupomTroca(valor) {
+        // Gera um código aleatório, ex: TROCA8492
+        const codigo = 'TROCA' + Math.floor(1000 + Math.random() * 9000)
+        const novoCupom = { codigo, tipo: 'troca', valor }
+        
+        const cupons = this.listarCupons()
+        cupons.push(novoCupom)
+        localStorage.setItem('vinho_cupons', JSON.stringify(cupons))
+        
+        return codigo // Retorna o código gerado para mostrarmos ao Admin
     }
 
     static calcularFrete(cep) {
@@ -36,10 +63,10 @@ export class VendaModel {
      }
 
     //valida se o valor passado em cada cartão é pelo menos 10,00
-    static validarPagamento(cartão, descontoCupons) { 
+    static validarPagamento(cartoes, descontoCupons) { 
         const temCupom = descontoCupons > 0
-        for (const cartão of cartoes) {
-            const val = parseFloat(cartão.valor) || 0
+        for (const cartao of cartoes) {
+            const val = parseFloat(cartao.valor) || 0
             if (!temCupom && val < 10) {
                 throw new Error ("Valor mínimo por cartão é de 10 reais ")
             }

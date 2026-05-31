@@ -10,13 +10,6 @@ export default function ClienteLista() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 32px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 32, margin: 0 }}>Clientes</h1>
-        <button onClick={() => navigate('/admin/clientes/novo')} style={{
-          background: 'var(--wine)', color: '#fff', border: 'none',
-          borderRadius: 8, padding: '10px 20px', fontSize: 14,
-          cursor: 'pointer', fontFamily: 'DM Sans, sans-serif'
-        }}>
-          + Novo cliente
-        </button>
       </div>
 
       <input

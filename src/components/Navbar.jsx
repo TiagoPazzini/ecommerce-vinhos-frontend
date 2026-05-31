@@ -45,9 +45,12 @@ export default function Navbar() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
 
         {usuario?.perfil === 'admin' && (
-          <Link to="/admin/clientes" style={linkStyle('/admin/clientes')}>
-            Clientes
-          </Link>
+          <>
+            <Link to="/admin/clientes" style={linkStyle('/admin/clientes')}>Clientes</Link>
+            <Link to="/admin/produtos" style={linkStyle('/admin/produtos')}>Produtos</Link>
+            <Link to="/admin/pedidos" style={linkStyle('/admin/pedidos')}>Pedidos</Link>
+            <Link to="/admin/dashboard" style={linkStyle('/admin/dashboard')}>Dashboard</Link>
+          </>
         )}
 
         {usuario?.perfil === 'cliente' && (
@@ -65,6 +68,7 @@ export default function Navbar() {
               )}
             </Link>
             <Link to="/pedidos" style={linkStyle('/pedidos')}>Meus pedidos</Link>
+            <Link to="/perfil" style={linkStyle('/perfil')}>Meu Perfil</Link>
           </>
         )}
 

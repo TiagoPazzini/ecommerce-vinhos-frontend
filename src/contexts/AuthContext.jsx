@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
 
   function logout() {
     setUsuario(null)
-    AuthModel.salvarSessao(dados)
+    AuthModel.limparSessao()
   }
 
   return (

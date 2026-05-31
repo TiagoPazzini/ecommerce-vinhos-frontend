@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ClienteModel } from '../models/ClienteModel'
+import { useAuth } from '../contexts/AuthContext' 
 
 const enderecoVazio = () => ({
   apelido: '', tipoResidencia: '', tipoLogradouro: '',
@@ -18,6 +19,7 @@ export function useClienteCadastroController() {
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
+  const { login } = useAuth()
 
   const [form, setForm] = useState({
     nome: '', email: '', cpf: '', dataNascimento: '',
@@ -49,7 +51,7 @@ export function useClienteCadastroController() {
 
   function adicionarEndereco() { setEnderecos([...enderecos, enderecoVazio()]) }
   function removerEndereco(index) { if (enderecos.length > 1) setEnderecos(enderecos.filter((_, i) => i !== index)) }
-  
+
   function adicionarCartao() { setCartoes([...cartoes, cartaoVazio()]) }
   function removerCartao(index) { if (cartoes.length > 1) setCartoes(cartoes.filter((_, i) => i !== index)) }
 
@@ -57,15 +59,24 @@ export function useClienteCadastroController() {
     e.preventDefault()
     try {
       setErro('')
-      
+
       // Chama a validação pura do Model
       ClienteModel.validarCadastro(form, enderecos)
-      
+
       // Se passou nas validações, salva!
       ClienteModel.cadastrar({ ...form, enderecos, cartoes })
-      
+
+      const usuarioSessao = {
+        nome: form.nome,
+        email: form.email, 
+        perfil: 'cliente'
+      };
+      login (usuarioSessao);
+
+      const destino = location.state?.from?.pathname || (isAdmin ? '/admin/clientes' : '/')
+
       alert('Cliente cadastrado com sucesso!')
-      navigate(isAdmin ? '/admin/clientes' : '/')
+      navigate(destino, { replace: true })
     } catch (error) {
       setErro(error.message)
     }

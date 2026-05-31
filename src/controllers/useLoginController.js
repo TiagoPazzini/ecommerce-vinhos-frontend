@@ -28,14 +28,15 @@ export function useLoginController() {
       // Atualiza o estado global da aplicação
       login(usuarioAutenticado)
       
-      const destino = location.state?.from?.pathname ||
-        (usuarioAutenticado.perfil === 'admin' ? '/admin/clientes' : '/')
-
-      navigate(destino, { replace: true }) // Redireciona para o destino final
+      const destino = usuarioAutenticado.perfil === 'admin' 
+                ? '/admin/clientes' 
+                : (location.state?.from?.pathname || '/')
+      
+      navigate(destino, { replace: true })
 
     } catch (error) {
       setErro(error.message)
-    }
+    } 
   }
 
   return {

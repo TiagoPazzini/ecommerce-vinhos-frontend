@@ -30,7 +30,8 @@ export default function Checkout() {
     handleSelecionarEndereco, handleProximaEtapa, handleAplicarCupom,
     handleRemoverCupom, handleToggleCartao, handleValorCartao,
     validarValorCartao, calcularFrete, handleConfirmar, adicionandoEndereco, setAdicionandoEndereco, novoEndereco,
-    handleNovoEnderecoChange, handleSalvarEndereco
+    handleNovoEnderecoChange, handleSalvarEndereco, adicionandoCartao, setAdicionandoCartao, novoCartao,
+    handleNovoCartaoChange, handleSalvarCartao
   } = useCheckoutController()
 
 
@@ -150,13 +151,13 @@ export default function Checkout() {
                         )}
                       </div>
                     ))}
-                    
-                    <button type="button" onClick={() => setAdicionandoEndereco(true)} style={{ 
-                      width: '100%', background: 'transparent', border: '1px dashed var(--wine)', color: 'var(--wine)', 
-                      padding: 16, borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500 
-                    }}>
-                      + Adicionar outro endereço
-                    </button>
+
+                  <button type="button" onClick={() => setAdicionandoEndereco(true)} style={{
+                    width: '100%', background: 'transparent', border: '1px dashed var(--wine)', color: 'var(--wine)',
+                    padding: 16, borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500
+                  }}>
+                    + Adicionar outro endereço
+                  </button>
                 </>
               )}
             </div>
@@ -176,7 +177,15 @@ export default function Checkout() {
           <div>
             {/* Resumo de valores */}
             <div style={secaoStyle}>
-              <h2 style={secaoTituloStyle}>Resumo</h2>
+              <h2 style={secaoTituloStyle}>Resumo do Pedido</h2>
+              <div style={{ marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
+                {carrinho.map(item => (
+                  <div key={item.produto.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>
+                    <span>{item.produto.nome} (x{item.quantidade})</span>
+                    <span>R$ {(item.produto.preco * item.quantidade).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--muted)' }}>Subtotal</span>
@@ -240,7 +249,7 @@ export default function Checkout() {
             <div style={secaoStyle}>
               <h2 style={secaoTituloStyle}>Cartões de crédito</h2>
               <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-                Valor restante a pagar: <strong style={{ color: 'var(--wine)' }}>R$ {Math.max(0, totalComFrete - descontoCupons).toFixed(2)}</strong>
+                Valor a ser pago no cartão: <strong style={{ color: 'var(--wine)' }}>R$ {totalComFrete.toFixed(2)}</strong>
               </p>
 
               {!cliente?.cartoes?.length ? (
@@ -300,6 +309,39 @@ export default function Checkout() {
                 })
               )}
 
+              {/* Substitua o final da seção de Cartões pelo código abaixo */}
+              {!adicionandoCartao ? (
+                <button type="button" onClick={() => setAdicionandoCartao(true)} style={{
+                  width: '100%', background: 'transparent', border: '1px dashed var(--wine)', color: 'var(--wine)',
+                  padding: 16, borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500, marginTop: 12
+                }}>
+                  + Adicionar novo cartão
+                </button>
+              ) : (
+                <form onSubmit={handleSalvarCartao} style={{ background: '#F9FAFB', border: '1px solid var(--border)', borderRadius: 10, padding: 20, marginTop: 16 }}>
+                  <h3 style={{ fontSize: 15, marginBottom: 16, marginTop: 0 }}>Novo Cartão</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <input name="numero" placeholder="Número do Cartão" value={novoCartao.numero} onChange={handleNovoCartaoChange} style={{ ...inputStyle, gridColumn: 'span 2' }} required />
+                    <input name="nomeImpresso" placeholder="Nome Impresso" value={novoCartao.nomeImpresso} onChange={handleNovoCartaoChange} style={{ ...inputStyle, gridColumn: 'span 2' }} required />
+                    <select name="bandeira" value={novoCartao.bandeira} onChange={handleNovoCartaoChange} style={inputStyle} required>
+                      <option value="">Bandeira</option>
+                      <option value="Visa">Visa</option>
+                      <option value="Mastercard">Mastercard</option>
+                      <option value="Elo">Elo</option>
+                    </select>
+                    <input name="codSeguranca" placeholder="CVV" value={novoCartao.codSeguranca} onChange={handleNovoCartaoChange} style={inputStyle} required maxLength="4" />
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                    <button type="submit" style={{ background: 'var(--wine)', color: '#fff', padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13 }}>
+                      Confirmar Cartão
+                    </button>
+                    <button type="button" onClick={() => setAdicionandoCartao(false)} style={{ background: 'transparent', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              )}
+
               {erroPagamento && (
                 <p style={{ color: '#991B1B', fontSize: 13, marginTop: 8 }}>{erroPagamento}</p>
               )}
@@ -348,7 +390,7 @@ export default function Checkout() {
                   {enderecoSelecionado?.tipoLogradouro} {enderecoSelecionado?.logradouro}, {enderecoSelecionado?.numero} — {enderecoSelecionado?.bairro}, {enderecoSelecionado?.cidade}/{enderecoSelecionado?.estado}
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                  Frete: R$ {frete.toFixed(2)}  
+                  Frete: R$ {frete.toFixed(2)}
                 </p>
               </div>
 

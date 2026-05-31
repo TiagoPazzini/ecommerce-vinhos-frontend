@@ -1,4 +1,3 @@
-// src/controllers/usePedidosController.js
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,7 +11,7 @@ export function usePedidosController() {
   const sucesso = searchParams.get('sucesso')
 
   const [pedidos, setPedidos] = useState([])
-  const [expandido, setExpandido] = useState(null) // Controla qual pedido está aberto
+  const [expandido, setExpandido] = useState(null)
 
   useEffect(() => {
     if (usuario?.email) {
@@ -20,9 +19,17 @@ export function usePedidosController() {
     }
   }, [usuario])
 
-  // Função para alternar a exibição dos detalhes do pedido
   function toggleExpandido(id) {
     setExpandido(expandido === id ? null : id)
+  }
+
+  // --- FUNÇÃO DE SOLICITAÇÃO DE TROCA ---
+  function handleSolicitarTroca(pedidoId) {
+    if (window.confirm('Deseja solicitar a troca/devolução deste pedido? O Administrador avaliará o pedido.')) {
+      PedidoModel.atualizarStatus(pedidoId, 'EM TROCA')
+      // Atualiza a lista na tela instantaneamente
+      setPedidos(PedidoModel.listarPorCliente(usuario.email))
+    }
   }
 
   return {
@@ -30,6 +37,7 @@ export function usePedidosController() {
     expandido,
     sucesso,
     toggleExpandido,
+    handleSolicitarTroca, // <-- Exportando a função para o botão usar
     formatarData: PedidoModel.formatarData,
     navigate
   }

@@ -5,6 +5,7 @@ const CHAVE = 'vinho_clientes'
 const clientesIniciais = [
   { id: 1, nome: 'Ana Souza', email: 'ana@email.com', cpf: '111.111.111-11', dataNascimento: '1990-05-10', genero: 'feminino', telefone: '(11) 91111-1111', status: 'ativo' },
   { id: 2, nome: 'Bruno Lima', email: 'bruno@email.com', cpf: '222.222.222-22', dataNascimento: '1985-08-22', genero: 'masculino', telefone: '(11) 92222-2222', status: 'ativo' },
+  {id: 3, nome: 'Rodrigo Rocha', email: 'cliente@vinho.com', cpf: '333.333.333-33', dataNascimento: '1992-12-03', genero: 'feminino', telefone: '(11) 93333-3333', status: 'ativo', enderecos: [], cartoes: []},
 ]
 
 export class ClienteModel {
