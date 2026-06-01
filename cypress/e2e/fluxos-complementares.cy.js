@@ -96,7 +96,7 @@ describe('Cenários Complementares de Entrega (Requisitos Restantes)', () => {
     cy.visit('/checkout')
 
     // Preenche um endereço temporário rápido para pular pra etapa 2
-    cy.contains('+ Adicionar outro endereço').click()
+    
     cy.get('input[name="apelido"]').type('Trabalho')
     cy.get('input[name="cep"]').type('01000-000')
     cy.get('input[name="logradouro"]').type('Rua Y')

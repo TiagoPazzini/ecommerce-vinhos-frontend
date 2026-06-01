@@ -13,6 +13,8 @@ import Checkout from './pages/Checkout'
 import Pedidos from './pages/Pedidos'
 import AdminPedidos from './pages/AdminPedidos'
 import MeuPerfil from './pages/MeuPerfil'
+import Chatbot from './components/Chatbot'
+
 
 
 function RotaProtegida({ children, perfil }) {
@@ -66,6 +68,7 @@ export default function App() {
       <CarrinhoProvider>
         <BrowserRouter>
           <AppRoutes />
+          <Chatbot />
         </BrowserRouter>
       </CarrinhoProvider>
     </AuthProvider>
