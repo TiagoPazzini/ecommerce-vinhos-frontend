@@ -139,7 +139,7 @@ export default function Carrinho() {
                       fontSize: 13,
                       margin: '0 0 8px 0'
                     }}>
-                      {item.produto.tipo} · {item.produto.uva} · {item.produto.regiao}
+                      {item.produto.tipo} · {item.produto.uva} · {item.produto.regiao} · {item.produto.pais}
                     </p>
                     <p style={{
                       color: 'var(--wine)',

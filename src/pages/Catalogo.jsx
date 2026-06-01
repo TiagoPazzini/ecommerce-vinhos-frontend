@@ -166,7 +166,7 @@ export default function Catalogo() {
                   marginBottom: 4,
                   margin: 0
                 }}>
-                  {vinho.regiao} · Safra {vinho.safra}
+                  {vinho.regiao} · {vinho.pais} · Safra {vinho.safra}
                 </p>
                 
                 <h3 style={{
