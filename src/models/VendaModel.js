@@ -30,9 +30,9 @@ export class VendaModel {
     const temCupom = descontoCupons > 0
     for (const cartao of cartoes) {
       const val = parseFloat(cartao.valor) || 0
-      if (!temCupom && val < 10) {
-        throw new Error("Valor mínimo por cartão é de 10 reais ")
+      if (!temCupom && val < 10 ) {
+        throw new Error("Valor mínimo de R$ 10,00 por cartão. (RN0034")
       }
-    }
+    } 
   }
 }

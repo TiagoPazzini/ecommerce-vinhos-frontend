@@ -57,15 +57,45 @@ export function useCheckoutController() {
   }
 
   function handleProximaEtapa() {
+      // Limpa todos os estados de erro antes de validar
       setErro('')
+      setErroPagamento('')
+
       if (etapa === 1) {
           if (!enderecoSelecionado) return setErro('Selecione um endereço de entrega.')
           setEtapa(2)
       } else if (etapa === 2) {
-          const totalPagoCartoes = cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
-          if (totalPagoCartoes < totalComFrete) {
-              return setErroPagamento(`Falta R$ ${(totalComFrete - totalPagoCartoes).toFixed(2)} no(s) cartão(ões).`)
+          
+          // 1. Valida as regras de R$ 10 por cartão
+          try {
+              VendaModel.validarPagamento(cartoesSelecionados, descontoCupons)
+          } catch (error) {
+              // 🌟 Alimenta o banner grande no topo e o erro local do cartão
+              setErro(error.message)
+              setErroPagamento(error.message)
+              return
           }
+
+          const totalPagoCartoes = cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
+          
+          // 2. Valida se o valor digitado é MENOR que o total do pedido
+          if (totalPagoCartoes < totalComFrete) {
+              const msgFalta = `Falta R$ ${(totalComFrete - totalPagoCartoes).toFixed(2)} no(s) cartão(ões).`
+              setErro(msgFalta)
+              setErroPagamento(msgFalta)
+              return
+          }
+
+          // 3. Valida se o valor digitado é MAIOR que o total do pedido
+          if (totalPagoCartoes > totalComFrete) {
+              const msgExcesso = `O valor informado nos cartões (R$ ${totalPagoCartoes.toFixed(2)}) é maior do que o total do pedido (R$ ${totalComFrete.toFixed(2)}). Ajuste os valores.`
+              setErro(msgExcesso)
+              setErroPagamento(msgExcesso)
+              return
+          }
+
+          // Se passou em tudo, limpa e avança
+          setErro('')
           setErroPagamento('')
           setEtapa(3)
       }

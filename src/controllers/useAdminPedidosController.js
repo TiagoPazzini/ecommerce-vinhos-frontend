@@ -37,6 +37,7 @@ export function useAdminPedidosController() {
     }
   }
 
+  // Dentro de src/controllers/useAdminPedidosController.js
   async function handleConfirmarRecebimento(pedidoId) {
     if (window.confirm('Confirmar recebimento do produto devolvido e gerar cupom de troca?')) {
       const pedido = await pedidoDao.read(pedidoId)
@@ -44,10 +45,16 @@ export function useAdminPedidosController() {
       if (pedido) {
         await pedidoDao.update(pedidoId, { status: 'TROCADO' })
         
+        // 📊 CÁLCULO PROPORCIONAL: Verifica se há flag de item parcial, senão usa o total padrão (preserva o Cypress)
+        const temItemParcial = pedido.itens.some(item => item.emTroca);
+        const valorCupom = temItemParcial
+          ? pedido.itens.reduce((total, item) => item.emTroca ? total + (Number(item.produto.preco) * Number(item.qtdTroca)) : total, 0)
+          : pedido.total;
+
         const codigoCupom = VendaModel.gerarCodigoCupomTroca()
-        await cupomDao.create({ codigo: codigoCupom, tipo: 'troca', valor: pedido.total })
+        await cupomDao.create({ codigo: codigoCupom, tipo: 'troca', valor: valorCupom })
         
-        alert(`Produto recebido em estoque!\n\nUm cupom de troca foi gerado com sucesso: ${codigoCupom}\nValor: R$ ${pedido.total.toFixed(2)}`)
+        alert(`Produto recebido em estoque!\n\nUm cupom de troca parcial foi gerado com sucesso: ${codigoCupom}\nValor creditado: R$ ${valorCupom.toFixed(2)}`)
         await carregarPedidos()
       }
     }

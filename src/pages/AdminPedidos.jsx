@@ -15,9 +15,9 @@ const statusCor = {
 }
 
 export default function AdminPedidos() {
-  const { 
-    pedidos, handleMudarStatus, formatarData, 
-    handleAutorizarTroca, handleNegarTroca, handleConfirmarRecebimento 
+  const {
+    pedidos, handleMudarStatus, formatarData,
+    handleAutorizarTroca, handleNegarTroca, handleConfirmarRecebimento
   } = useAdminPedidosController()
 
   return (
@@ -32,7 +32,7 @@ export default function AdminPedidos() {
             <tr style={{ background: 'var(--cream)' }}>
               {['Pedido', 'Data', 'Cliente', 'Total', 'Status', 'Ações'].map(col => (
                 <th key={col} style={{
-                  padding: '12px 16px', textAlign: 'left', fontWeight: 500, 
+                  padding: '12px 16px', textAlign: 'left', fontWeight: 500,
                   color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase'
                 }}>{col}</th>
               ))}
@@ -48,8 +48,15 @@ export default function AdminPedidos() {
             )}
             {pedidos.map(pedido => (
               <tr key={pedido.id} style={{ borderTop: '1px solid var(--border)' }}>
-                <td style={{ padding: '14px 16px', fontWeight: 600 }}>#{String(pedido.id).slice(-6)}</td>
-                <td style={{ padding: '14px 16px', color: 'var(--muted)' }}>{formatarData(pedido.dataPedido)}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 600 }}>
+                  #{String(pedido.id).slice(-6)}
+                  {/* Exibe os itens específicos solicitados para devolução */}
+                  {pedido.itens?.filter(i => i.emTroca).map(i => (
+                    <div key={i.produto.id} style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400, marginTop: 4 }}>
+                      📦 Devolver: {i.produto.nome} ({i.qtdTroca} un)
+                    </div>
+                  ))}
+                </td>                <td style={{ padding: '14px 16px', color: 'var(--muted)' }}>{formatarData(pedido.dataPedido)}</td>
                 <td style={{ padding: '14px 16px', color: 'var(--muted)' }}>{pedido.clienteEmail}</td>
                 <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--wine)' }}>
                   R$ {pedido.total?.toFixed(2)}
@@ -64,7 +71,7 @@ export default function AdminPedidos() {
                   </span>
                 </td>
                 <td style={{ padding: '14px 16px' }}>
-                  
+
                   {/* Máquina de Status: Exibe botões com base no momento do pedido */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {pedido.status === 'EM PROCESSAMENTO' && (
@@ -101,11 +108,11 @@ export default function AdminPedidos() {
                     )}
 
                     {pedido.status === 'TROCADO' && (
-                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>Troca Finalizada</span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>Troca Finalizada</span>
                     )}
 
                     {pedido.status === 'ENTREGUE' && (
-                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>Finalizado</span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>Finalizado</span>
                     )}
                   </div>
 
