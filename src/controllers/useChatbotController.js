@@ -28,11 +28,19 @@ export function useChatbotController() {
         if (usuario?.email) {
           const pedidoDao = new PedidoDAO()
           const todosPedidos = await pedidoDao.readAll()
-          const meusPedidos = todosPedidos.filter(p => p.clienteEmail === usuario.email)
+          
+          // 🔥 FILTRAGEM BLINDADA: Garante que os 50 pedidos entram no contexto do chat sem quebras
+          const meusPedidos = todosPedidos.filter(p => {
+            const emailPedido = p.clienteEmail || p.cliente_email;
+            if (!emailPedido) return false;
+            return emailPedido.toLowerCase().trim() === usuario.email.toLowerCase().trim();
+          })
+          
+          console.log("🤖 Histórico real enviado para a IA do Chatbot:", meusPedidos);
           setContextoHistorico(meusPedidos)
         }
       } catch (error) {
-        console.error("Erro ao carregar contexto:", error)
+        console.error("Erro ao carregar contexto no chatbot:", error)
       }
     }
     carregarContexto()
@@ -46,7 +54,7 @@ export function useChatbotController() {
       if (itemExistente) {
         itemExistente.quantidade += 1
       } else {
-        carrinhoAtual.push({ produto: vinho, quantidade: 1 })
+        carrinhoAtual.push({ produto: vinho, Clinicalquantidade: 1 })
       }
 
       await atualizarCarrinho(carrinhoAtual)

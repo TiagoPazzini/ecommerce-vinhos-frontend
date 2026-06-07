@@ -1,36 +1,125 @@
 import { IDAO } from './interfaces/IDAO';
-
-const CHAVE = 'vinho_pedidos';
+import { supabase } from '../services/supabaseClient';
 
 export class PedidoDAO extends IDAO {
   async readAll() {
-    const dados = localStorage.getItem(CHAVE);
-    return dados ? JSON.parse(dados) : [];
+    const { data, error } = await supabase.from('pedidos').select('*');
+    if (error) throw new Error(error.message);
+    
+    // Converte as colunas do banco (snake_case) para as propriedades do React (camelCase)
+    return data.map(p => ({
+      id: Number(p.id),
+      clienteId: p.cliente_id,
+      clienteEmail: p.cliente_email, // <-- Isso corrige o filtro de e-mail!
+      itens: p.itens,
+      enderecoEntrega: p.endereco_entrega,
+      formasPagamento: p.formas_pagamento,
+      frete: Number(p.frete),
+      subtotal: Number(p.subtotal),
+      descontoCupons: Number(p.desconto_cupons),
+      total: Number(p.total),
+      status: p.status,
+      dataPedido: p.data_pedido     // <-- Isso resolve o Invalid Date!
+    }));
   }
 
   async read(id) {
-    const pedidos = await this.readAll();
-    return pedidos.find(p => p.id === Number(id)) || null;
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select('*')
+      .eq('id', Number(id))
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      id: Number(data.id),
+      clienteId: data.cliente_id,
+      clienteEmail: data.cliente_email,
+      itens: data.itens,
+      enderecoEntrega: data.endereco_entrega,
+      formasPagamento: data.formas_pagamento,
+      frete: Number(data.frete),
+      subtotal: Number(data.subtotal),
+      descontoCupons: Number(data.desconto_cupons),
+      total: Number(data.total),
+      status: data.status,
+      dataPedido: data.data_pedido
+    };
   }
 
   async create(pedido) {
-    const pedidos = await this.readAll();
-    pedidos.push(pedido);
-    localStorage.setItem(CHAVE, JSON.stringify(pedidos));
-    return pedido;
+    const { data, error } = await supabase
+      .from('pedidos')
+      .insert([{
+        id: pedido.id,
+        cliente_id: pedido.clienteId,
+        cliente_email: pedido.clienteEmail,
+        itens: pedido.itens,
+        endereco_entrega: pedido.enderecoEntrega,
+        formas_pagamento: pedido.formasPagamento,
+        frete: pedido.frete,
+        subtotal: pedido.subtotal,
+        desconto_cupons: pedido.descontoCupons,
+        total: pedido.total,
+        status: pedido.status,
+        data_pedido: pedido.dataPedido
+      }])
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    
+    return {
+      id: Number(data.id),
+      clienteId: data.cliente_id,
+      clienteEmail: data.cliente_email,
+      itens: data.itens,
+      enderecoEntrega: data.endereco_entrega,
+      formasPagamento: data.formas_pagamento,
+      frete: Number(data.frete),
+      subtotal: Number(data.subtotal),
+      descontoCupons: Number(data.desconto_cupons),
+      total: Number(data.total),
+      status: data.status,
+      dataPedido: data.data_pedido
+    };
   }
 
   async update(id, dadosAtualizados) {
-    const pedidos = await this.readAll();
-    const index = pedidos.findIndex(p => p.id === Number(id));
-    if (index !== -1) {
-      pedidos[index] = { ...pedidos[index], ...dadosAtualizados };
-      localStorage.setItem(CHAVE, JSON.stringify(pedidos));
-      return pedidos[index];
-    }
-    throw new Error('Pedido não encontrado');
-  }
+    const payload = { ...dadosAtualizados };
+    if (payload.clienteId) { payload.cliente_id = payload.clienteId; delete payload.clienteId; }
+    if (payload.clienteEmail) { payload.cliente_email = payload.clienteEmail; delete payload.clienteEmail; }
+    if (payload.enderecoEntrega) { payload.endereco_entrega = payload.enderecoEntrega; delete payload.enderecoEntrega; }
+    if (payload.formasPagamento) { payload.formas_pagamento = payload.formasPagamento; delete payload.formasPagamento; }
+    if (payload.descontoCupons) { payload.desconto_cupons = payload.descontoCupons; delete payload.descontoCupons; }
+    if (payload.dataPedido) { payload.data_pedido = payload.dataPedido; delete payload.dataPedido; }
 
+    const { data, error } = await supabase
+      .from('pedidos')
+      .update(payload)
+      .eq('id', Number(id))
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    return {
+      id: Number(data.id),
+      clienteId: data.cliente_id,
+      clienteEmail: data.cliente_email,
+      itens: data.itens,
+      enderecoEntrega: data.endereco_entrega,
+      formasPagamento: data.formas_pagamento,
+      frete: Number(data.frete),
+      subtotal: Number(data.subtotal),
+      descontoCupons: Number(data.desconto_cupons),
+      total: Number(data.total),
+      status: data.status,
+      dataPedido: data.data_pedido
+    };
+  }
+  
   async delete(id) {
     throw new Error("Pedidos não podem ser deletados fisicamente");
   }

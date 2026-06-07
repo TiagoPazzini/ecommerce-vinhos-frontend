@@ -1,39 +1,51 @@
 import { IDAO } from './interfaces/IDAO';
-
-const CHAVE = 'vinho_clientes';
+import { supabase } from '../services/supabaseClient';
 
 export class ClienteDAO extends IDAO {
   async readAll() {
-    const dados = localStorage.getItem(CHAVE);
-    return dados ? JSON.parse(dados) : [];
+    const { data, error } = await supabase.from('clientes').select('*');
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async read(id) {
-    const clientes = await this.readAll();
-    return clientes.find(c => c.id === Number(id)) || null;
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('id', Number(id))
+      .maybeSingle();
+
+    if (error) return null;
+    return data;
   }
 
   async create(cliente) {
-    const clientes = await this.readAll();
-    const novoCliente = { ...cliente, id: Date.now(), status: 'ativo' };
-    clientes.push(novoCliente);
-    localStorage.setItem(CHAVE, JSON.stringify(clientes));
-    return novoCliente;
+    // Desestrutura o confirmarSenha que não vai pro banco
+    const { confirmarSenha, ...dadosParaSalvar } = cliente;
+    
+    const { data, error } = await supabase
+      .from('clientes')
+      .insert([{ ...dadosParaSalvar, status: 'ativo' }])
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async update(id, dadosAtualizados) {
-    const clientes = await this.readAll();
-    const index = clientes.findIndex(c => c.id === Number(id));
-    if (index !== -1) {
-      clientes[index] = { ...clientes[index], ...dadosAtualizados };
-      localStorage.setItem(CHAVE, JSON.stringify(clientes));
-      return clientes[index];
-    }
-    throw new Error('Cliente não encontrado');
+    const { data, error } = await supabase
+      .from('clientes')
+      .update(dadosAtualizados)
+      .eq('id', Number(id))
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async delete(id) {
-    // Exclusão lógica (inativação) conforme sua regra atual
     return await this.update(id, { status: 'inativo' });
   }
 }

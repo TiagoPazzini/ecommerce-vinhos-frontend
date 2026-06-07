@@ -10,16 +10,29 @@ export async function gerarRecomendacaoIA(mensagemUsuario, produtos, historicoCo
       `- PRODUTO_ID: ${p.id} | ${p.nome} (${p.tipo}, ${p.uva}, ${p.docura}, ${p.teorAlcoolico}% vol, R$${p.preco}). Origem: ${p.regiao}, ${p.pais}.`
     ).join('\n')
 
+    // 💡 FORMATADOR INTELIGENTE: Conta as frequências de cada vinho para a IA entender a preferência por massas
     let historicoFormatado = "Nenhum histórico de compras prévio."
     if (historicoCompras && historicoCompras.length > 0) {
-      const itensComprados = historicoCompras.flatMap(pedido => pedido.itens.map(i => i.produto.nome))
-      historicoFormatado = [...new Set(itensComprados)].join(', ')
+      const contagem = {};
+      historicoCompras.forEach(pedido => {
+        const listaItens = pedido.itens || [];
+        listaItens.forEach(i => {
+          const nomeVinho = i.produto?.nome || i.produto_nome;
+          if (nomeVinho) {
+            contagem[nomeVinho] = (contagem[nomeVinho] || 0) + (i.quantidade || 1);
+          }
+        });
+      });
+      
+      const linhas = Object.entries(contagem).map(([vinho, qtd]) => `${vinho} (comprado ${qtd} vezes)`);
+      if (linhas.length > 0) {
+        historicoFormatado = linhas.join(', ');
+      }
     }
 
     const historicoConversaText = historicoChat.map(m => 
       `${m.sender === 'user' ? 'Usuário' : 'SommelierVirtual'}: ${m.text}`
     ).join('\n')
-
     const prompt = `
       Você é um Sommelier Virtual educado, sofisticado e conciso de um e-commerce de vinhos de luxo chamado "Vinho & Co.".
       Você está conversando com o cliente chamado ${nomeCliente || 'Cliente'}.
@@ -28,12 +41,16 @@ export async function gerarRecomendacaoIA(mensagemUsuario, produtos, historicoCo
       1. Você SÓ PODE recomendar vinhos que estejam na LISTA DE PRODUTOS DISPONÍVEIS abaixo.
       2. NÃO ALUCINE. Nunca recomende um vinho, marca, uva ou tipo que não esteja na lista.
       3. Se a pergunta do usuário não tiver relação com vinhos, harmonização ou o e-commerce, responda educadamente que você só pode ajudar com assuntos relacionados a vinhos.
-      4. Leve em consideração o HISTÓRICO DE COMPRAS do cliente para fazer recomendações personalizadas (ex: se ele compra muito vinho tinto, sugira um vinho tinto semelhante).
+      4. SEMPRE analise o HISTÓRICO DE COMPRAS do cliente para fazer recomendações personalizadas (ex: se ele compra muito vinho tinto, sugira um vinho tinto semelhante).
       5. Responda de forma curta e direta (máximo de 3 parágrafos curtos).
-      6. Em casos de perguntas vagas como "Me sugira um vinho", tente extrair mais informações do cliente na resposta (ex: "Você prefere vinhos tintos, brancos ou rosés? Tem alguma uva favorita? O que vai comer? Qual a ocasião").
+      6. Em casos de perguntas vagas como "Me sugira um vinho", analise o histórico de pedidos do cliente para entender suas preferências e sugira um vinho que se encaixe no perfil dele, explicando brevemente o motivo da escolha.
       7. Se o cliente pedir uma harmonização, sugira um vinho do catálogo que combine com o prato mencionado. Se não tiver um vinho específico para aquele prato, sugira o mais próximo possível baseado nas características (ex: se for um prato leve, sugira um vinho leve do catálogo).
       8. Sempre que possível, destaque o preço e as características do vinho recomendado para ajudar o cliente a decidir.
-      9. Se o cliente insistir em perguntas vagas após suas perguntas, recomende um vinho popular do catálogo e destaque suas características para tentar endajar o cliente.
+      9. ANALISE O HISTOTICO DE PEDIDOS do cliente, se já houver pedido não diga que é uma boa escolha para a primeira compra, mas sim que é uma escolha consistente com o perfil de consumo dele, mostrando que você entende as preferências do cliente.
+      10. SEMPRE diga que analisou o histórico de compras do cliente para fazer a recomendação.
+      11. Apos analisar o historico de compra e fazer a recomendação, pergunte se tem alguma ocasião especial ou um prato específico para o qual ele gostaria de uma sugestão de harmonização, e se sim, faça a recomendação baseada na ocasião ou prato mencionado.
+
+
 
       REGRAS DE FORMATAÇÃO E METADADOS:
       - NUNCA escreva o ID do produto ou expressões como "(ID: X)" ou "PRODUTO_ID" no texto legível da conversa. O ID serve apenas para as tags estruturais secundárias.

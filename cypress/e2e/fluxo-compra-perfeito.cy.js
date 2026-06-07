@@ -1,26 +1,30 @@
 describe('Fluxo de Compra e Redirecionamento', () => {
 
   // O beforeEach roda silenciosamente ANTES do teste começar
+  // O beforeEach roda silenciosamente ANTES do teste começar
   beforeEach(() => {
-    const clienteDeTeste = [{
-      id: 999,
-      nome: "Cliente Fantasma",
-      email: "cliente@vinho.com",
-      senha: "Cliente@123",
-      dataNascimento: "1990-01-01",
-      status: "ativo",
-      enderecos: [{
-        apelido: "Casa", tipoEndereco: "ambos", tipoLogradouro: "Rua",
-        logradouro: "Av Paulista", numero: "1000", bairro: "Bela Vista",
-        cep: "01310-100", cidade: "São Paulo", estado: "SP", pais: "Brasil"
-      }],
-      cartoes: []
-    }]
+    const URL_SUPABASE = 'https://uedkqqwnifmfdgrwktyq.supabase.co';
+    const ANON_KEY = 'SUA_VITE_SUPABASE_ANON_KEY_AQUI'; // <-- Cole aqui a sua chave do arquivo .env
 
-    // Injeta o cliente no banco de dados do navegador
-    cy.window().then((win) => {
-      win.localStorage.setItem('vinho_clientes', JSON.stringify(clienteDeTeste))
-    })
+    // 1. Limpa os pedidos antigos desse cliente de teste direto no Postgres
+    cy.request({
+      method: 'DELETE',
+      url: `${URL_SUPABASE}/rest/v1/pedidos?cliente_email=eq.cliente@vinho.com`,
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` },
+      failOnStatusCode: false
+    });
+
+    // 2. Reseta os endereços e cartões do cliente de teste no Postgres para começar do zero
+    cy.request({
+      method: 'PATCH',
+      url: `${URL_SUPABASE}/rest/v1/clientes?email=eq.cliente@vinho.com`,
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+      body: {
+        enderecos: [],
+        cartoes: []
+      },
+      failOnStatusCode: false
+    });
   })
 
   it('Deve adicionar um vinho ao carrinho, exigir login e voltar ao checkout', () => {
@@ -57,7 +61,7 @@ describe('Fluxo de Compra e Redirecionamento', () => {
     // ... código anterior (passo 9)
 
     // 10. Clica para abrir o formulário de novo endereço
-    cy.contains('+ Adicionar outro endereço').click()
+    
 
     // 11. Preenche os dados do endereço novo
     cy.get('input[name="apelido"]').type('Trabalho')
@@ -132,12 +136,19 @@ describe('Fluxo de Compra e Redirecionamento', () => {
 
     // 24. Forçamos o status para ENTREGUE direto no Banco (localStorage)
     // Isso evita que o robô trave tentando adivinhar o nome dos seus botões de despachar
-    cy.window().then((win) => {
-      const pedidos = JSON.parse(win.localStorage.getItem('vinho_pedidos'))
-      pedidos[0].status = 'ENTREGUE'
-      win.localStorage.setItem('vinho_pedidos', JSON.stringify(pedidos))
+   // 24. Forçamos o status para ENTREGUE direto no Banco de Dados (Supabase)
+    cy.request({
+      method: 'PATCH',
+      url: 'https://uedkqqwnifmfdgrwktyq.supabase.co/rest/v1/pedidos',
+      headers: {
+        'apikey': 'COLE_AQUI_A_SUA_CHAVE_VITE_SUPABASE_ANON_KEY',
+        'Authorization': 'Bearer COLE_AQUI_A_SUA_CHAVE_VITE_SUPABASE_ANON_KEY',
+        'Content-Type': 'application/json'
+      },
+      body: {
+        status: 'ENTREGUE'
+      }
     })
-    
     // Recarrega a página para o cliente ver o novo status
     cy.reload()
     cy.contains('ENTREGUE').should('be.visible')

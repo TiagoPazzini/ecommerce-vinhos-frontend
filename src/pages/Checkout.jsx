@@ -51,6 +51,15 @@ export default function Checkout() {
     )
   }
 
+  // 🛡️ ADICIONE ESTE GUARD AQUI: Impede que a tela renderize formulários errados enquanto o Supabase responde
+  if (!cliente && etapa !== 3) {
+    return (
+      <div style={{ padding: 80, textAlign: 'center', fontFamily: 'DM Sans, sans-serif', color: 'var(--muted)' }}>
+        Carregando dados do perfil...
+      </div>
+    )
+  }
+
   return (
     <div style={{ background: 'var(--cream)', minHeight: '100vh', paddingBottom: 60 }}>
 

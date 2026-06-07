@@ -18,9 +18,24 @@ export function usePedidosController() {
 
   async function carregarPedidos() {
     if (usuario?.email) {
-      const todos = await dao.readAll()
-      const meus = todos.filter(p => p.clienteEmail === usuario.email)
-      setPedidos(meus.reverse())
+      try {
+        const todos = await dao.readAll()
+        
+        // 🔥 FILTRAGEM BLINDADA: Aceita os dois padrões e evita quebras se houver dados nulos
+        const meus = todos.filter(p => {
+          // Tenta pegar o e-mail tanto em camelCase quanto em snake_case do banco
+          const emailPedido = p.clienteEmail || p.cliente_email;
+          
+          // Se o pedido não tiver e-mail por algum motivo, ignora de forma segura sem quebrar a tela
+          if (!emailPedido) return false; 
+          
+          return emailPedido.toLowerCase().trim() === usuario.email.toLowerCase().trim();
+        })
+        
+        setPedidos(meus.reverse())
+      } catch (error) {
+        console.error("❌ Erro ao ler a tabela do Supabase:", error.message);
+      }
     }
   }
 
