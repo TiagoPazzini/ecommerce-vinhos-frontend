@@ -6,20 +6,19 @@ export class PedidoDAO extends IDAO {
     const { data, error } = await supabase.from('pedidos').select('*');
     if (error) throw new Error(error.message);
     
-    // Converte as colunas do banco (snake_case) para as propriedades do React (camelCase)
     return data.map(p => ({
       id: Number(p.id),
       clienteId: p.cliente_id,
-      clienteEmail: p.cliente_email, // <-- Isso corrige o filtro de e-mail!
+      clienteEmail: p.cliente_email, 
       itens: p.itens,
       enderecoEntrega: p.endereco_entrega,
       formasPagamento: p.formas_pagamento,
-      frete: Number(p.frete),
-      subtotal: Number(p.subtotal),
-      descontoCupons: Number(p.desconto_cupons),
-      total: Number(p.total),
+      frete: Number(p.frete || 0),
+      subtotal: Number(p.subtotal || 0),
+      descontoCupons: Number(p.desconto_cupons || 0),
+      total: Number(p.total || 0),
       status: p.status,
-      dataPedido: p.data_pedido     // <-- Isso resolve o Invalid Date!
+      dataPedido: p.data_pedido     
     }));
   }
 
@@ -39,10 +38,10 @@ export class PedidoDAO extends IDAO {
       itens: data.itens,
       enderecoEntrega: data.endereco_entrega,
       formasPagamento: data.formas_pagamento,
-      frete: Number(data.frete),
-      subtotal: Number(data.subtotal),
-      descontoCupons: Number(data.desconto_cupons),
-      total: Number(data.total),
+      frete: Number(data.frete || 0),
+      subtotal: Number(data.subtotal || 0),
+      descontoCupons: Number(data.desconto_cupons || 0),
+      total: Number(data.total || 0),
       status: data.status,
       dataPedido: data.data_pedido
     };
@@ -77,10 +76,10 @@ export class PedidoDAO extends IDAO {
       itens: data.itens,
       enderecoEntrega: data.endereco_entrega,
       formasPagamento: data.formas_pagamento,
-      frete: Number(data.frete),
-      subtotal: Number(data.subtotal),
-      descontoCupons: Number(data.desconto_cupons),
-      total: Number(data.total),
+      frete: Number(data.frete || 0),
+      subtotal: Number(data.subtotal || 0),
+      descontoCupons: Number(data.desconto_cupons || 0),
+      total: Number(data.total || 0),
       status: data.status,
       dataPedido: data.data_pedido
     };
@@ -111,10 +110,10 @@ export class PedidoDAO extends IDAO {
       itens: data.itens,
       enderecoEntrega: data.endereco_entrega,
       formasPagamento: data.formas_pagamento,
-      frete: Number(data.frete),
-      subtotal: Number(data.subtotal),
-      descontoCupons: Number(data.desconto_cupons),
-      total: Number(data.total),
+      frete: Number(data.frete || 0),
+      subtotal: Number(data.subtotal || 0),
+      descontoCupons: Number(data.desconto_cupons || 0),
+      total: Number(data.total || 0),
       status: data.status,
       dataPedido: data.data_pedido
     };

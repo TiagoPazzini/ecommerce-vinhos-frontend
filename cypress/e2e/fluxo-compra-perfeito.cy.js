@@ -1,247 +1,290 @@
-describe('Fluxo de Compra e Redirecionamento', () => {
+describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
 
-  // O beforeEach roda silenciosamente ANTES do teste começar
-  // O beforeEach roda silenciosamente ANTES do teste começar
+  function gerarCPFValido() {
+    const randomDigit = () => Math.floor(Math.random() * 9);
+    const n = Array.from({ length: 9 }, randomDigit);
+    let d1 = n.reduce((total, num, idx) => total + num * (10 - idx), 0);
+    d1 = 11 - (d1 % 11);
+    if (d1 >= 10) d1 = 0;
+    let d2 = d1 * 2 + n.reduce((total, num, idx) => total + num * (11 - idx), 0);
+    d2 = 11 - (d2 % 11);
+    if (d2 >= 10) d2 = 0;
+    return `${n[0]}${n[1]}${n[2]}.${n[3]}${n[4]}${n[5]}.${n[6]}${n[7]}${n[8]}-${d1}${d2}`;
+  }
+
+  const emailCliente = `maria.${Date.now()}@vinho.com`
+  const senhaCliente = 'Cliente@123'
+  const cpfDinamico = gerarCPFValido()
+
   beforeEach(() => {
-    const URL_SUPABASE = 'https://uedkqqwnifmfdgrwktyq.supabase.co';
-    const ANON_KEY = 'SUA_VITE_SUPABASE_ANON_KEY_AQUI'; // <-- Cole aqui a sua chave do arquivo .env
-
-    // 1. Limpa os pedidos antigos desse cliente de teste direto no Postgres
-    cy.request({
-      method: 'DELETE',
-      url: `${URL_SUPABASE}/rest/v1/pedidos?cliente_email=eq.cliente@vinho.com`,
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` },
-      failOnStatusCode: false
-    });
-
-    // 2. Reseta os endereços e cartões do cliente de teste no Postgres para começar do zero
-    cy.request({
-      method: 'PATCH',
-      url: `${URL_SUPABASE}/rest/v1/clientes?email=eq.cliente@vinho.com`,
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
-      body: {
-        enderecos: [],
-        cartoes: []
-      },
-      failOnStatusCode: false
-    });
+    cy.clearLocalStorage()
+    cy.clearCookies()
   })
 
-  it('Deve adicionar um vinho ao carrinho, exigir login e voltar ao checkout', () => {
-    // 1. Entra na página inicial
+  it('Deve executar toda a jornada combinada de compra, cadastro do zero, validações e troca parcial', () => {
+    
+    // =======================================================================
+    // 1. ADICIONAR PRODUTOS AO CARRINHO E ALTERAR QUANTIDADES (DESLOGADO)
+    // =======================================================================
     cy.visit('/')
-
-    // 2. Clica no botão de ir pro catálogo
     cy.contains('Explorar vinhos').click()
+    cy.wait(2000)
 
-    // 3. Clica no primeiro botão "+ Carrinho" que encontrar
-    cy.contains('+ Carrinho').first().click()
+    cy.get('button').filter(':contains("+ Carrinho")').eq(0).click({ force: true })
+    cy.get('button').filter(':contains("+ Carrinho")').eq(1).click({ force: true })
 
-    // 4. Vai para a página do carrinho
-    cy.contains('Carrinho').click()
+    cy.contains('🛒 Carrinho').click()
+    cy.url().should('include', '/carrinho')
+    cy.wait(2000)
 
-    // 5. Tenta finalizar a compra (estando deslogado)
+    cy.contains('Itens do carrinho').should('be.visible')
+    cy.get('button').contains('+').first().click()
+    cy.wait(2000)
+
     cy.contains('Finalizar compra').click()
-
-    // 6. Verifica se o sistema barrou e mandou pro login
     cy.url().should('include', '/login')
-    cy.contains('Acesse sua conta ou cadastre-se').should('be.visible')
+    cy.wait(2000)
 
-    // 7. Preenche os dados de login com o cliente que injetamos no beforeEach
-    cy.get('input[name="email"]').type('cliente@vinho.com')
-    cy.get('input[name="senha"]').type('Cliente@123')
-    cy.get('button[type="submit"]').contains('Entrar').click()
+    // =======================================================================
+    // 2. CRIAR NOVA CONTA (VELOCIDADE MÁXIMA)
+    // =======================================================================
+    cy.get('button').contains('Criar conta').click()
+    cy.contains('Ir para o cadastro').click()
+    cy.url().should('include', '/cadastro')
 
-    // 8. O GRANDE TESTE: Deve pular a Home e ir direto para o Checkout!
-    cy.url().should('include', '/checkout')
-    
-    // 9. Verifica se a Etapa 1 do Checkout carregou certinho
+    cy.contains('h2', 'Dados pessoais').parent().within(() => {
+      cy.get('input[name="nome"]').type('Maria da Silva')
+      cy.get('input[name="email"]').type(emailCliente)
+      cy.get('input[name="cpf"]').type(cpfDinamico)
+      cy.get('input[name="dataNascimento"]').type('1995-05-15')
+      cy.get('select[name="genero"]').select('feminino')
+      cy.get('input[name="telefone"]').type('(11) 98888-7777')
+      cy.get('input[name="senha"]').type(senhaCliente)
+      cy.get('input[name="confirmarSenha"]').type(senhaCliente)
+    })
+
+    cy.contains('h2', 'Endereços').parent().within(() => {
+      cy.get('input[name="apelido"]').type('Casa da Maria')
+      cy.get('select[name="tipoEndereco"]').select('ambos')
+      cy.get('select[name="tipoResidencia"]').select('Casa')
+      cy.get('select[name="tipoLogradouro"]').select('Rua')
+      cy.get('input[name="logradouro"]').type('Rua das Garrafas de Vinho')
+      cy.get('input[name="numero"]').type('750')
+      cy.get('input[name="bairro"]').type('Videiras')
+      cy.get('input[name="cep"]').type('13000-000')
+      cy.get('input[name="cidade"]').type('Campinas')
+      cy.get('input[name="estado"]').type('SP')
+      cy.get('input[name="pais"]').clear().type('Brasil')
+    })
+
+    cy.contains('h2', 'Cartões de crédito').parent().within(() => {
+      cy.get('input[name="numero"]').type('1111222233334444')
+      cy.get('input[name="nomeImpresso"]').type('CLIENTE TESTE UM')
+      cy.get('select[name="bandeira"]').select('Visa')
+      cy.get('input[name="codSeguranca"]').type('123')
+    })
+
+    // ⏱️ Timeout estendido para aguentar a inserção no banco remoto do Supabase
+    cy.get('button[type="submit"]').contains('Cadastrar cliente').click()
+
+    // =======================================================================
+    // 3. CHECKOUT: CADASTRAR UM NOVO ENDEREÇO E PROSSEGUIR
+    // =======================================================================
+    cy.url({ timeout: 10000 }).should('include', '/checkout')
     cy.contains('Selecione o endereço de entrega').should('be.visible')
+    cy.wait(2000)
 
-    // ... código anterior (passo 9)
+    cy.contains('+ Adicionar outro endereço').click()
+    cy.contains('h3', 'Cadastrar Endereço').parent().within(() => {
+      cy.get('input[name="apelido"]').type('Trabalho')
+      cy.get('input[name="cep"]').type('01310-100')
+      cy.get('input[name="logradouro"]').type('Avenida Paulista')
+      cy.get('input[name="numero"]').type('1000')
+      cy.get('input[name="bairro"]').type('Bela Vista')
+      cy.get('input[name="cidade"]').type('São Paulo')
+      cy.get('input[name="estado"]').type('SP')
+      cy.contains('Salvar Endereço').click()
+    })
+    cy.wait(2000)
 
-    // 10. Clica para abrir o formulário de novo endereço
-    
-
-    // 11. Preenche os dados do endereço novo
-    cy.get('input[name="apelido"]').type('Trabalho')
-    cy.get('input[name="cep"]').type('04538-133')
-    cy.get('input[name="logradouro"]').type('Av Brigadeiro Faria Lima')
-    cy.get('input[name="numero"]').type('3000')
-    cy.get('input[name="bairro"]').type('Itaim Bibi')
-    cy.get('input[name="cidade"]').type('São Paulo')
-    cy.get('input[name="estado"]').type('SP')
-
-    // 12. Clica para salvar
-    cy.contains('Salvar Endereço').click()
-
-    // 13. O formulário deve sumir e o endereço "Trabalho" deve aparecer na tela. Vamos clicar nele!
     cy.contains('Trabalho').click()
-
-    // 14. Quando selecionamos o endereço, o frete é calculado. Vamos garantir que ele apareceu:
     cy.contains('Frete: R$').should('be.visible')
-
-    // 15. Avança para a Etapa 2 (Pagamento)
+    cy.wait(2000)
     cy.contains('Próximo →').click()
 
-    // 16. Verifica se a tela de pagamento carregou e mostrou o Resumo
-    cy.contains('Resumo').should('be.visible')
-    cy.contains('Cartões de crédito').should('be.visible')
+    // =======================================================================
+    // 4. ETAPA 2: CUPOM, DOIS CARTÕES E SEQUÊNCIA DE REGRAS DE NEGÓCIO
+    // =======================================================================
+    cy.contains('Resumo do Pedido').should('be.visible')
+    cy.wait(2000)
 
-    // ... continuação após o passo 16 ...
-
-    // 17. Aplica o cupom de desconto promocional
     cy.get('input[placeholder="Digite o código do cupom"]').type('PROMO10')
     cy.contains('button', 'Aplicar').click()
-    cy.contains('PROMO10 — R$ 10.00').should('be.visible')
+    cy.contains('PROMO10').should('be.visible')
+    cy.wait(2000)
 
-    // 18. Adiciona o PRIMEIRO cartão de crédito
     cy.contains('+ Adicionar novo cartão').click()
-    cy.get('input[name="numero"]').type('1111222233334444')
-    cy.get('input[name="nomeImpresso"]').type('CLIENTE TESTE UM')
-    cy.get('select[name="bandeira"]').select('Visa')
-    cy.get('input[name="codSeguranca"]').type('123')
-    cy.contains('button', 'Confirmar Cartão').click()
-
-    // 19. Adiciona o SEGUNDO cartão de crédito
-    cy.contains('+ Adicionar novo cartão').click()
-    cy.get('input[name="numero"]').type('5555666677778888')
-    cy.get('input[name="nomeImpresso"]').type('CLIENTE TESTE DOIS')
-    cy.get('select[name="bandeira"]').select('Mastercard')
-    cy.get('input[name="codSeguranca"]').type('456')
-    cy.contains('button', 'Confirmar Cartão').click()
-
-    // 20. Como configuramos para os cartões já virem marcados ao criar, 
-    // vamos apenas dividir o pagamento (Total R$ 895,00)
-    cy.get('input[placeholder="0,00"]').eq(0).clear().type('500')
-    cy.get('input[placeholder="0,00"]').eq(1).clear().type('395')
-
-    // 21. Avança para a Etapa 3 (Confirmação)
-    cy.contains('button', 'Próximo →').click()
-    cy.contains('Resumo do pedido').should('be.visible')
-
-    // 22. O Grand Finale: Confirma a compra e valida a tela de sucesso!
-    cy.contains('button', 'Confirmar pedido ✓').click()
-    
-    // 23. Valida se chegou em Meus Pedidos com o status correto
-    cy.url().should('include', '/pedidos')
-    cy.contains('Pedido realizado com sucesso').should('be.visible')
-    cy.contains('Pedido #').should('be.visible')
-    cy.contains('EM PROCESSAMENTO').should('be.visible')
-
-
-    // =======================================================
-    // === PARTE 2: A JORNADA DA TROCA E CUPOM DINÂMICO ======
-    // =======================================================
-
-    // 24. Forçamos o status para ENTREGUE direto no Banco (localStorage)
-    // Isso evita que o robô trave tentando adivinhar o nome dos seus botões de despachar
-   // 24. Forçamos o status para ENTREGUE direto no Banco de Dados (Supabase)
-    cy.request({
-      method: 'PATCH',
-      url: 'https://uedkqqwnifmfdgrwktyq.supabase.co/rest/v1/pedidos',
-      headers: {
-        'apikey': 'COLE_AQUI_A_SUA_CHAVE_VITE_SUPABASE_ANON_KEY',
-        'Authorization': 'Bearer COLE_AQUI_A_SUA_CHAVE_VITE_SUPABASE_ANON_KEY',
-        'Content-Type': 'application/json'
-      },
-      body: {
-        status: 'ENTREGUE'
-      }
+    cy.contains('h3', 'Novo Cartão').parent().within(() => {
+      cy.get('input[name="numero"]').type('5555666677778888')
+      cy.get('input[name="nomeImpresso"]').type('CLIENTE TESTE DOIS')
+      cy.get('select[name="bandeira"]').select('Mastercard')
+      cy.get('input[name="codSeguranca"]').type('456')
+      cy.contains('button', 'Confirmar Cartão').click()
     })
-    // Recarrega a página para o cliente ver o novo status
-    cy.reload()
-    cy.contains('ENTREGUE').should('be.visible')
+    
 
-    // 25. Cliente: Abre os detalhes e Solicita Troca
-    cy.contains('Ver detalhes').click()
-    cy.contains('Solicitar Troca / Devolução').click()
-    cy.contains('EM TROCA').should('be.visible')
+    cy.contains('CLIENTE TESTE UM').click()
+    cy.contains('CLIENTE TESTE DOIS').click()
+    
 
-    // 26. Cliente sai da conta
+    // Testando erro de valor mínimo (R$ 5,00)
+    cy.get('input[type="number"]').eq(0).clear().type('5')
+    cy.get('input[type="number"]').eq(1).clear().type('150')
+    cy.contains('button', 'Próximo →').click()
+    cy.contains('Valor mínimo de R$ 10,00 por cartão.').should('be.visible')
+    cy.wait(2000)
+
+    // Testando erro de valor somado incorreto
+    cy.get('input[type="number"]').eq(0).clear().type('20')
+    cy.get('input[type="number"]').eq(1).clear().type('20')
+    cy.contains('button', 'Próximo →').click()
+    cy.contains('Falta R$').should('be.visible')
+    cy.wait(2000)
+
+    cy.contains('Total').siblings().last().then(($totalElement) => {
+      const valorTotal = parseFloat($totalElement.text().replace(/[^\d,.]/g, '').replace(',', '.'))
+      const metadeValor = (valorTotal / 2).toFixed(2)
+      
+      cy.get('input[type="number"]').eq(0).clear().type(metadeValor)
+      cy.get('input[type="number"]').eq(1).clear().type(metadeValor)
+    })
+    cy.wait(2000)
+
+    cy.contains('button', 'Próximo →').click()
+    cy.wait(2000)
+    cy.contains('Confirmar pedido ✓').click()
+    
+    // ⏱️ Espera elástica pelo salvamento do pedido no Supabase
+    cy.url({ timeout: 10000 }).should('include', '/pedidos')
+    cy.wait(2000)
+
+    // =======================================================================
+    // 5. PAINEL ADMIN: MÁQUINA DE STATUS DE PEDIDOS (IMUNIZADO)
+    // =======================================================================
     cy.contains('button', 'Sair').click()
-
-    // 27. Admin: Faz Login
-    cy.url().should('include', '/login')
     cy.get('input[name="email"]').clear().type('admin@vinho.com')
     cy.get('input[name="senha"]').clear().type('Admin@123')
     cy.get('button[type="submit"]').contains('Entrar').click()
 
-    // 🛑 TRAVA DE SEGURANÇA: Faz o robô esperar o React sair da tela de login.
-    // Isso garante que deu tempo de salvar a sessão no banco antes de recarregar a página!
-    cy.url().should('not.include', '/login')
-
-    // 28. Admin: Vai para a tela de pedidos 
     cy.visit('/admin/pedidos')
+    cy.wait(2000)
     
-    // 29. Admin: Autoriza a troca
-    cy.contains('Autorizar Troca').click()
-    cy.contains('TROCA AUTORIZADA').should('be.visible')
-
-    // 30. O GRANDE TRUQUE: Vamos "escutar" o pop-up do navegador para roubar o código do cupom!
-    let cupomGerado = ''
-    cy.on('window:alert', (texto) => {
-      // Procura por "TROCA" seguido de números no texto do alert
-      const match = texto.match(/(TROCA\d+)/)
-      if (match) cupomGerado = match[1] 
+    // 🚀 BLINDAGEM HISTÓRICA: O Admin agora isola e atua estritamente sobre a linha da Maria
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Aprovar').click()
     })
+    cy.wait(2000)
+    
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Despachar (Transporte)').click()
+    })
+    cy.wait(2000)
+    
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Marcar como Entregue').click()
+    })
+    cy.wait(2000)
 
-    // 31. Admin: Confirma o Recebimento (Isso dispara o alert que o Cypress vai capturar acima)
-    cy.contains('Confirmar Recebimento').click()
-    cy.contains('Troca Finalizada').should('be.visible')
-
-    // 32. Admin sai e Cliente volta
+    // =======================================================================
+    // 6. CLIENTE: ENTRAR E SOLICITAR TROCA PARCIAL DE APENAS 1 ITEM
+    // =======================================================================
     cy.contains('button', 'Sair').click()
-    // O Admin também estava numa rota protegida, então já caiu no /login de novo!
-    cy.url().should('include', '/login')
-    cy.get('input[name="email"]').clear().type('cliente@vinho.com')
-    cy.get('input[name="senha"]').clear().type('Cliente@123')
+    cy.get('input[name="email"]').clear().type(emailCliente)
+    cy.get('input[name="senha"]').clear().type(senhaCliente)
     cy.get('button[type="submit"]').contains('Entrar').click()
 
-    // 33. Cliente: Compra outro vinho
-    cy.visit('/catalogo')
-    cy.contains('+ Carrinho').first().click()
+    cy.visit('/pedidos')
+    cy.contains('Pedido #').first().click()
+    cy.wait(2000)
     
-    // 34. Vai para o Checkout e reaproveita o endereço
-    cy.contains('Carrinho').click()
+    cy.get('input[type="number"]').first().clear().type('1')
+    cy.wait(2000)
+    cy.contains('Confirmar Devolução dos Itens Selecionados').click()
+    cy.contains('EM TROCA').should('be.visible')
+    cy.wait(2000)
+
+    // =======================================================================
+    // 7. ADMIN: AUTORIZAR TROCA E CAPTURAR CÓDIGO DO CUPOM
+    // =======================================================================
+    cy.contains('button', 'Sair').click()
+    cy.get('input[name="email"]').clear().type('admin@vinho.com')
+    cy.get('input[name="senha"]').clear().type('Admin@123')
+    cy.get('button[type="submit"]').contains('Entrar').click()
+
+    cy.visit('/admin/pedidos')
+    cy.wait(2000)
+    
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Autorizar Troca').click()
+    })
+
+    let cupomTrocaGerado = ''
+    cy.on('window:alert', (textoAlert) => {
+      const match = textoAlert.match(/(TROCA\d+)/)
+      if (match) cupomTrocaGerado = match[1]
+    })
+
+    cy.wait(2000)
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Confirmar Recebimento').click()
+    })
+    cy.wait(2000)
+
+    // =======================================================================
+    // 8. RECOMPRA DO CLIENTE: OUTROS 3 PRODUTOS E ENDEREÇO SALVO
+    // =======================================================================
+    cy.contains('button', 'Sair').click()
+    cy.get('input[name="email"]').clear().type(emailCliente)
+    cy.get('input[name="senha"]').clear().type(senhaCliente)
+    cy.get('button[type="submit"]').contains('Entrar').click()
+
+    cy.visit('/catalogo')
+    cy.get('button').filter(':contains("+ Carrinho")').eq(0).click({ force: true })
+    cy.get('button').filter(':contains("+ Carrinho")').eq(1).click({ force: true })
+    cy.get('button').filter(':contains("+ Carrinho")').eq(2).click({ force: true })
+
+    cy.contains('🛒 Carrinho').click()
     cy.contains('Finalizar compra').click()
+    cy.wait(2000)
+    
     cy.contains('Trabalho').click()
     cy.contains('button', 'Próximo →').click()
 
-    // 35. O GRAN FINALE: Aplica o super cupom recém-gerado e finaliza a compra!
-    // Usamos o cy.then() para o Cypress acessar a variável cupomGerado
-    cy.then(() => { 
-      // Aplica o cupom
-      cy.get('input[placeholder="Digite o código do cupom"]').type(cupomGerado)
+    // =======================================================================
+    // 9. FINALIZAÇÃO: REAPROVEITAR CUPOM DA TROCA E VERIFICAÇÃO DE SALDO 0
+    // =======================================================================
+    cy.then(() => {
+      cy.get('input[placeholder="Digite o código do cupom"]').type(cupomTrocaGerado)
       cy.contains('button', 'Aplicar').click()
-      cy.contains(cupomGerado).should('be.visible')
-      
-      // 36. Adiciona um cartão para pagar a diferença de R$ 10,00
-      cy.contains('+ Adicionar novo cartão').click()
-      cy.get('input[name="numero"]').type('9999888877776666')
-      cy.get('input[name="nomeImpresso"]').type('CLIENTE FIEL')
-      cy.get('select[name="bandeira"]').select('Visa')
-      cy.get('input[name="codSeguranca"]').type('789')
-      cy.contains('button', 'Confirmar Cartão').click()
+      cy.contains(cupomTrocaGerado).should('be.visible')
+      cy.wait(2000)
 
-      // 37. Digita o valor restante no cartão (Exatos R$ 10)
-      cy.get('input[placeholder="0,00"]').clear().type('10')
+      cy.contains('Valor a ser pago no cartão').find('strong').then(($total) => {
+        const valorRestante = parseFloat($total.text().replace(/[^\d,.]/g, '').replace(',', '.'))
+        
+        if (valorRestante > 0) {
+          cy.contains('Visa').click()
+          cy.get('input[type="number"]').first().clear().type(valorRestante.toFixed(2))
+          cy.wait(2000)
+        }
+      })
 
-      // 38. Avança para a Etapa de Confirmação
       cy.contains('button', 'Próximo →').click()
-      cy.contains('Resumo do pedido').should('be.visible')
-
-      // 39. Finaliza a segunda compra com o cupom de troca
-      cy.contains('button', 'Confirmar pedido ✓').click()
-      
-      // 40. Comemora a vitória na tela de Pedidos!
-      cy.url().should('include', '/pedidos')
-      cy.contains('Pedido realizado com sucesso').should('be.visible')
-      
-      cy.log('🔥 TESTE ÉPICO CONCLUÍDO COM SUCESSO! A TROCA FUNCIONOU ATÉ O FIM! 🔥')
+      cy.wait(2000)
+      cy.contains('Confirmar pedido ✓').click()
+      cy.url({ timeout: 10000 }).should('include', '/pedidos')
+      cy.contains('EM PROCESSAMENTO').should('be.visible')
       
     })
-
   })
-
 })

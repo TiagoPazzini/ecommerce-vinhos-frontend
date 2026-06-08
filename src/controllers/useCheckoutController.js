@@ -57,7 +57,7 @@ export function useCheckoutController() {
   }
 
   function handleProximaEtapa() {
-      // Limpa todos os estados de erro antes de validar
+      // 🛡️ O sistema limpa mensagens de erro e não as apresenta antes do input/submit
       setErro('')
       setErroPagamento('')
 
@@ -66,19 +66,18 @@ export function useCheckoutController() {
           setEtapa(2)
       } else if (etapa === 2) {
           
-          // 1. Valida as regras de R$ 10 por cartão
+          // 1. PRIMEIRO: Valida a regra de R$ 10,00 de valor mínimo por cartão para todos independente da ordem
           try {
               VendaModel.validarPagamento(cartoesSelecionados, descontoCupons)
           } catch (error) {
-              // 🌟 Alimenta o banner grande no topo e o erro local do cartão
               setErro(error.message)
               setErroPagamento(error.message)
               return
           }
 
+          // 2. DEPOIS: Verifica se o valor total somado inserido nos cartões é igual ao valor líquido do pedido
           const totalPagoCartoes = cartoesSelecionados.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0)
           
-          // 2. Valida se o valor digitado é MENOR que o total do pedido
           if (totalPagoCartoes < totalComFrete) {
               const msgFalta = `Falta R$ ${(totalComFrete - totalPagoCartoes).toFixed(2)} no(s) cartão(ões).`
               setErro(msgFalta)
@@ -86,7 +85,6 @@ export function useCheckoutController() {
               return
           }
 
-          // 3. Valida se o valor digitado é MAIOR que o total do pedido
           if (totalPagoCartoes > totalComFrete) {
               const msgExcesso = `O valor informado nos cartões (R$ ${totalPagoCartoes.toFixed(2)}) é maior do que o total do pedido (R$ ${totalComFrete.toFixed(2)}). Ajuste os valores.`
               setErro(msgExcesso)
@@ -94,7 +92,6 @@ export function useCheckoutController() {
               return
           }
 
-          // Se passou em tudo, limpa e avança
           setErro('')
           setErroPagamento('')
           setEtapa(3)

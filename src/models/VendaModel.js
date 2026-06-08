@@ -15,7 +15,7 @@ export class VendaModel {
     const nasc = new Date(dataNascimento)
     let idade = hoje.getFullYear() - nasc.getFullYear()
     if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() == nasc.getMonth() && hoje.getDate() < nasc.getDate())) {
-      idade--
+        idade--
     }
     return idade;
   }
@@ -26,12 +26,12 @@ export class VendaModel {
     }
   }
 
+  // 🚀 VALIDADO: Faz estritamente a validação do valor mínimo por cartão primeiro
   static validarPagamento(cartoes, descontoCupons) {
-    const temCupom = descontoCupons > 0
     for (const cartao of cartoes) {
       const val = parseFloat(cartao.valor) || 0
-      if (!temCupom && val < 10 ) {
-        throw new Error("Valor mínimo de R$ 10,00 por cartão. (RN0034")
+      if (val < 10) {
+        throw new Error("Valor mínimo de R$ 10,00 por cartão. (RN0034)")
       }
     } 
   }

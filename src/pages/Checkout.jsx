@@ -1,8 +1,6 @@
 import { useCheckoutController } from "../controllers/useCheckoutController"
 import { Link } from 'react-router-dom'
 
-
-
 const inputStyle = {
   width: '100%', border: '1px solid var(--border)', borderRadius: 8,
   padding: '10px 14px', fontSize: 14, fontFamily: 'DM Sans, sans-serif',
@@ -20,8 +18,6 @@ const secaoTituloStyle = {
   paddingBottom: 12, borderBottom: '1px solid var(--border)'
 }
 
-
-
 export default function Checkout() {
   const {
     etapa, setEtapa, carrinho, cliente, erro, enderecoSelecionado,
@@ -33,7 +29,6 @@ export default function Checkout() {
     handleNovoEnderecoChange, handleSalvarEndereco, adicionandoCartao, setAdicionandoCartao, novoCartao,
     handleNovoCartaoChange, handleSalvarCartao
   } = useCheckoutController()
-
 
   // Se carrinho vazio
   if (carrinho.length === 0 && etapa !== 3) {
@@ -51,7 +46,6 @@ export default function Checkout() {
     )
   }
 
-  // 🛡️ ADICIONE ESTE GUARD AQUI: Impede que a tela renderize formulários errados enquanto o Supabase responde
   if (!cliente && etapa !== 3) {
     return (
       <div style={{ padding: 80, textAlign: 'center', fontFamily: 'DM Sans, sans-serif', color: 'var(--muted)' }}>
@@ -62,7 +56,6 @@ export default function Checkout() {
 
   return (
     <div style={{ background: 'var(--cream)', minHeight: '100vh', paddingBottom: 60 }}>
-
       {/* Header */}
       <div style={{ background: 'var(--wine-dark)', padding: '32px 40px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -86,8 +79,8 @@ export default function Checkout() {
                 {etapa > i + 1 ? '✓' : i + 1}
               </div>
               <span style={{ fontSize: 13, fontWeight: etapa === i + 1 ? 600 : 400, color: etapa === i + 1 ? 'var(--wine)' : 'var(--muted)' }}>
-                {label}
-              </span>
+                {label
+              }</span>
               {i < 2 && <span style={{ color: 'var(--border)', margin: '0 4px' }}>›</span>}
             </div>
           ))}
@@ -95,7 +88,6 @@ export default function Checkout() {
       </div>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 32px' }}>
-
         {erro && (
           <div style={{
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
@@ -269,20 +261,21 @@ export default function Checkout() {
                 cliente.cartoes.map((cartao, i) => {
                   const selecionado = cartoesSelecionados.find(c => c.numero === cartao.numero)
                   return (
-                    <div key={i} style={{
-                      border: `2px solid ${selecionado ? 'var(--wine)' : 'var(--border)'}`,
-                      borderRadius: 10, padding: 16, marginBottom: 12,
-                      background: selecionado ? '#FFF5F5' : '#fff'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: selecionado ? 12 : 0 }}>
-                        <input type="checkbox" checked={!!selecionado}
-                          onChange={() => handleToggleCartao(cartao)}
-                          style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                    <div key={i} 
+                      onClick={() => handleToggleCartao(cartao)}
+                      style={{
+                        border: `2px solid ${selecionado ? 'var(--wine)' : 'var(--border)'}`,
+                        borderRadius: 10, padding: 16, marginBottom: 12, cursor: 'pointer',
+                        background: selecionado ? '#FFF5F5' : '#fff',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <span style={{ fontWeight: 500, fontSize: 14 }}>
+                          <span style={{ fontWeight: 600, fontSize: 14, color: '#1E293B' }}>
                             {cartao.bandeira} •••• {cartao.numero.slice(-4)}
                           </span>
-                          <span style={{ color: 'var(--muted)', fontSize: 13, marginLeft: 8 }}>
+                          <span style={{ color: 'var(--muted)', fontSize: 13, marginLeft: 12 }}>
                             {cartao.nomeImpresso}
                           </span>
                           {cartao.preferencial && (
@@ -294,10 +287,13 @@ export default function Checkout() {
                             </span>
                           )}
                         </div>
+                        {selecionado && (
+                          <span style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 500 }}>✓ Selecionado</span>
+                        )}
                       </div>
 
                       {selecionado && (
-                        <div>
+                        <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 12, borderTop: '1px dashed var(--border)', paddingTop: 12 }}>
                           <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
                             Valor a pagar neste cartão (mínimo R$ 10,00)
                           </label>
@@ -318,7 +314,6 @@ export default function Checkout() {
                 })
               )}
 
-              {/* Substitua o final da seção de Cartões pelo código abaixo */}
               {!adicionandoCartao ? (
                 <button type="button" onClick={() => setAdicionandoCartao(true)} style={{
                   width: '100%', background: 'transparent', border: '1px dashed var(--wine)', color: 'var(--wine)',
@@ -380,14 +375,9 @@ export default function Checkout() {
           <div>
             <div style={secaoStyle}>
               <h2 style={secaoTituloStyle}>Resumo do pedido</h2>
-
-              {/* Itens */}
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Itens</h3>
               {carrinho.map(item => (
-                <div key={item.produto.id} style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  fontSize: 14, color: 'var(--muted)', marginBottom: 8
-                }}>
+                <div key={item.produto.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--muted)', marginBottom: 8 }}>
                   <span>{item.produto.nome} × {item.quantidade}</span>
                   <span>R$ {(item.produto.preco * item.quantidade).toFixed(2)}</span>
                 </div>
