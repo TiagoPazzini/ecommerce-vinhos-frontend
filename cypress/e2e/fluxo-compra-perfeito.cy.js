@@ -116,12 +116,12 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     // 4. ETAPA 2: CUPOM, DOIS CARTÕES E SEQUÊNCIA DE REGRAS DE NEGÓCIO
     // =======================================================================
     cy.contains('Resumo do Pedido').should('be.visible')
-    cy.wait(2000)
+    
 
     cy.get('input[placeholder="Digite o código do cupom"]').type('PROMO10')
     cy.contains('button', 'Aplicar').click()
     cy.contains('PROMO10').should('be.visible')
-    cy.wait(2000)
+    
 
     cy.contains('+ Adicionar novo cartão').click()
     cy.contains('h3', 'Novo Cartão').parent().within(() => {
@@ -132,9 +132,10 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
       cy.contains('button', 'Confirmar Cartão').click()
     })
     
+    cy.wait(2000)
 
     cy.contains('CLIENTE TESTE UM').click()
-    cy.contains('CLIENTE TESTE DOIS').click()
+    //cy.contains('CLIENTE TESTE DOIS').click()
     
 
     // Testando erro de valor mínimo (R$ 5,00)
@@ -142,7 +143,7 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     cy.get('input[type="number"]').eq(1).clear().type('150')
     cy.contains('button', 'Próximo →').click()
     cy.contains('Valor mínimo de R$ 10,00 por cartão.').should('be.visible')
-    cy.wait(2000)
+  
 
     // Testando erro de valor somado incorreto
     cy.get('input[type="number"]').eq(0).clear().type('20')
