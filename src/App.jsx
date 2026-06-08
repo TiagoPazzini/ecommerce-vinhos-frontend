@@ -14,6 +14,7 @@ import Pedidos from './pages/Pedidos'
 import AdminPedidos from './pages/AdminPedidos'
 import MeuPerfil from './pages/MeuPerfil'
 import Chatbot from './components/Chatbot'
+import AdminDashboard from './pages/AdminDashboard'
 
 
 
@@ -57,6 +58,10 @@ function AppRoutes() {
         <Route path="/perfil" element={
           <RotaProtegida perfil="cliente"><MeuPerfil /></RotaProtegida>
         } />
+        <Route path="/admin/dashboard" element={
+          <RotaProtegida perfil="admin"><AdminDashboard /></RotaProtegida>
+        } />
+
       </Routes>
     </>
   )
