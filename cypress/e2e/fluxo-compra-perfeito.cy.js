@@ -27,69 +27,99 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     // 1. ADICIONAR PRODUTOS AO CARRINHO E ALTERAR QUANTIDADES (DESLOGADO)
     // =======================================================================
     cy.visit('/')
+    cy.wait(5000)
+
+
     cy.contains('Explorar vinhos').click()
     cy.wait(2000)
 
     cy.get('button').filter(':contains("+ Carrinho")').eq(0).click({ force: true })
+    cy.wait(2000)
     cy.get('button').filter(':contains("+ Carrinho")').eq(1).click({ force: true })
 
     cy.wait(3000)
 
     cy.contains('🛒 Carrinho').click()
     cy.url().should('include', '/carrinho')
-    cy.wait(2000)
+    cy.wait(7000)
 
     cy.contains('Itens do carrinho').should('be.visible')
     cy.get('button').contains('+').first().click()
-    cy.wait(1000)
-    cy.get('button').contains('+').first().click()
     cy.wait(2000)
+    cy.get('button').contains('+').first().click()
+    cy.wait(3000)
 
     cy.contains('Finalizar compra').click()
     cy.url().should('include', '/login')
     cy.wait(2000)
 
-    // =======================================================================
-    // 2. CRIAR NOVA CONTA (VELOCIDADE MÁXIMA)
-    // =======================================================================
+   
+    // 2. CRIAR NOVA CONTA 
+  
     cy.get('button').contains('Criar conta').click()
     cy.contains('Ir para o cadastro').click()
     cy.url().should('include', '/cadastro')
 
     cy.contains('h2', 'Dados pessoais').parent().within(() => {
       cy.get('input[name="nome"]').type('Maria da Silva')
+      cy.wait(1000)
       cy.get('input[name="email"]').type(emailCliente)
+      cy.wait(1000)
       cy.get('input[name="cpf"]').type(cpfDinamico)
+      cy.wait(1000)
       cy.get('input[name="dataNascimento"]').type('1995-05-15')
+      cy.wait(1000)
       cy.get('select[name="genero"]').select('feminino')
+      cy.wait(1000)
       cy.get('input[name="telefone"]').type('(11) 98888-7777')
+      cy.wait(1000)
       cy.get('input[name="senha"]').type(senhaCliente)
+      cy.wait(1000)
       cy.get('input[name="confirmarSenha"]').type(senhaCliente)
+      cy.wait(1000)
     })
 
     cy.contains('h2', 'Endereços').parent().within(() => {
       cy.get('input[name="apelido"]').type('Casa da Maria')
+      cy.wait(1000)
       cy.get('select[name="tipoEndereco"]').select('ambos')
+      cy.wait(1000)
       cy.get('select[name="tipoResidencia"]').select('Casa')
+      cy.wait(1000)
       cy.get('select[name="tipoLogradouro"]').select('Rua')
+      cy.wait(1000)
       cy.get('input[name="logradouro"]').type('Rua das Garrafas de Vinho')
+      cy.wait(1000)
       cy.get('input[name="numero"]').type('750')
+      cy.wait(1000)
       cy.get('input[name="bairro"]').type('Videiras')
+      cy.wait(1000)
       cy.get('input[name="cep"]').type('13000-000')
+      cy.wait(1000)
       cy.get('input[name="cidade"]').type('Campinas')
+      cy.wait(1000)
       cy.get('input[name="estado"]').type('SP')
+      cy.wait(1000)
       cy.get('input[name="pais"]').clear().type('Brasil')
+      
     })
+    
+    cy.wait(2000)
 
     cy.contains('h2', 'Cartões de crédito').parent().within(() => {
       cy.get('input[name="numero"]').type('1111222233334444')
+      cy.wait(1000)
       cy.get('input[name="nomeImpresso"]').type('CLIENTE TESTE UM')
+      cy.wait(1000)
       cy.get('select[name="bandeira"]').select('Visa')
+      cy.wait(1000)
       cy.get('input[name="codSeguranca"]').type('123')
     })
 
     // ⏱️ Timeout estendido para aguentar a inserção no banco remoto do Supabase
     cy.get('button[type="submit"]').contains('Cadastrar cliente').click()
+
+    cy.wait(7000) 
 
     // =======================================================================
     // 3. CHECKOUT: CADASTRAR UM NOVO ENDEREÇO E PROSSEGUIR
@@ -109,7 +139,7 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
       cy.get('input[name="estado"]').type('SP')
       cy.contains('Salvar Endereço').click()
     })
-    cy.wait(2000)
+    cy.wait(3000)
 
     cy.contains('Trabalho').click()
     cy.contains('Frete: R$').should('be.visible')
@@ -121,8 +151,10 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     // =======================================================================
     cy.contains('Resumo do Pedido').should('be.visible')
     
+    cy.wait(5000)
 
     cy.get('input[placeholder="Digite o código do cupom"]').type('PROMO10')
+    cy.wait(3000)
     cy.contains('button', 'Aplicar').click()
     cy.contains('PROMO10').should('be.visible')
     
@@ -141,20 +173,24 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     cy.contains('CLIENTE TESTE UM').click()
     //cy.contains('CLIENTE TESTE DOIS').click()
     
+    cy.wait(5000)
 
     // Testando erro de valor mínimo (R$ 5,00)
     cy.get('input[type="number"]').eq(0).clear().type('5')
+    cy.wait(1000)
     cy.get('input[type="number"]').eq(1).clear().type('150')
+    cy.wait(2000)
     cy.contains('button', 'Próximo →').click()
     cy.contains('Valor mínimo de R$ 10,00 por cartão.').should('be.visible')
   
+    cy.wait(4000)
 
     // Testando erro de valor somado incorreto
     cy.get('input[type="number"]').eq(0).clear().type('20')
     cy.get('input[type="number"]').eq(1).clear().type('20')
     cy.contains('button', 'Próximo →').click()
     cy.contains('Falta R$').should('be.visible')
-    cy.wait(2000)
+    cy.wait(4000)
 
     cy.contains('Total').siblings().last().then(($totalElement) => {
       const valorTotal = parseFloat($totalElement.text().replace(/[^\d,.]/g, '').replace(',', '.'))
@@ -163,7 +199,7 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
       cy.get('input[type="number"]').eq(0).clear().type(metadeValor)
       cy.get('input[type="number"]').eq(1).clear().type(metadeValor)
     })
-    cy.wait(2000)
+    cy.wait(4000)
 
     cy.contains('button', 'Próximo →').click()
     cy.wait(2000)
@@ -181,10 +217,12 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     cy.get('input[name="senha"]').clear().type('Admin@123')
     cy.get('button[type="submit"]').contains('Entrar').click()
 
+    cy.wait(4000)
+
     cy.visit('/admin/pedidos')
-    cy.wait(2000)
+    cy.wait(3000)
     
-    // 🚀 BLINDAGEM HISTÓRICA: O Admin agora isola e atua estritamente sobre a linha da Maria
+    
     cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
       cy.contains('button', 'Aprovar').click()
     })
@@ -207,12 +245,14 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     cy.get('input[name="email"]').clear().type(emailCliente)
     cy.get('input[name="senha"]').clear().type(senhaCliente)
     cy.get('button[type="submit"]').contains('Entrar').click()
+    
+    cy.wait(2000)
 
     cy.visit('/pedidos')
     cy.contains('Pedido #').first().click()
-    cy.wait(2000)
+    cy.wait(5000)
     
-    // 🚀 SOLUÇÃO: Seleciona tudo e sobrescreve em um único fluxo de evento, inserindo exatamente '1'
+    // Seleciona tudo e sobrescreve em um único fluxo de evento, inserindo exatamente '1'
     cy.get('input[type="number"]').first().type('{selectall}1')
     cy.wait(2000)
     
@@ -235,6 +275,8 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
       cy.contains('button', 'Autorizar Troca').click()
     })
 
+    cy.wait(3000)
+
     let cupomTrocaGerado = ''
     cy.on('window:alert', (textoAlert) => {
       const match = textoAlert.match(/(TROCA\d+)/)
@@ -256,15 +298,21 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     cy.get('button[type="submit"]').contains('Entrar').click()
 
     cy.visit('/catalogo')
+
+    cy.wait(3000)
     cy.get('button').filter(':contains("+ Carrinho")').eq(0).click({ force: true })
+    cy.wait(1000)
     cy.get('button').filter(':contains("+ Carrinho")').eq(1).click({ force: true })
+    cy.wait(1000)
     cy.get('button').filter(':contains("+ Carrinho")').eq(2).click({ force: true })
 
     cy.contains('🛒 Carrinho').click()
+    cy.wait(2000)
     cy.contains('Finalizar compra').click()
     cy.wait(2000)
     
     cy.contains('Trabalho').click()
+    cy.wait(2000)
     cy.contains('button', 'Próximo →').click()
 
     // =======================================================================
@@ -272,6 +320,9 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     // =======================================================================
     cy.then(() => {
       cy.get('input[placeholder="Digite o código do cupom"]').type(cupomTrocaGerado)
+
+      cy.wait(2000)
+
       cy.contains('button', 'Aplicar').click()
       cy.contains(cupomTrocaGerado).should('be.visible')
       cy.wait(2000)
