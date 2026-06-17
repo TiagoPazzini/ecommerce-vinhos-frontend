@@ -33,11 +33,15 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     cy.get('button').filter(':contains("+ Carrinho")').eq(0).click({ force: true })
     cy.get('button').filter(':contains("+ Carrinho")').eq(1).click({ force: true })
 
+    cy.wait(3000)
+
     cy.contains('🛒 Carrinho').click()
     cy.url().should('include', '/carrinho')
     cy.wait(2000)
 
     cy.contains('Itens do carrinho').should('be.visible')
+    cy.get('button').contains('+').first().click()
+    cy.wait(1000)
     cy.get('button').contains('+').first().click()
     cy.wait(2000)
 
@@ -208,8 +212,10 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
     cy.contains('Pedido #').first().click()
     cy.wait(2000)
     
-    cy.get('input[type="number"]').first().clear().type('1')
+    // 🚀 SOLUÇÃO: Seleciona tudo e sobrescreve em um único fluxo de evento, inserindo exatamente '1'
+    cy.get('input[type="number"]').first().type('{selectall}1')
     cy.wait(2000)
+    
     cy.contains('Confirmar Devolução dos Itens Selecionados').click()
     cy.contains('EM TROCA').should('be.visible')
     cy.wait(2000)
@@ -287,5 +293,33 @@ describe('Fluxo de Compra Perfeito do Zero - Vinho & Co.', () => {
       cy.contains('EM PROCESSAMENTO').should('be.visible')
       
     })
+    
+    // =======================================================================
+    // 10. FINALIZAÇÃO: ADMIN ENTRA E CONCLUI O PEDIDO PARA LIMPAR O CENÁRIO PARA PRÓXIMOS TESTES
+    // =======================================================================
+
+    cy.contains('button', 'Sair').click()
+    cy.get('input[name="email"]').clear().type('admin@vinho.com')
+    cy.get('input[name="senha"]').clear().type('Admin@123')
+    cy.get('button[type="submit"]').contains('Entrar').click()
+
+    cy.visit('/admin/pedidos')
+    cy.wait(2000)
+    
+    // 🚀 BLINDAGEM HISTÓRICA: O Admin agora isola e atua estritamente sobre a linha da Maria
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Aprovar').click()
+    })
+    cy.wait(2000)
+    
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Despachar (Transporte)').click()
+    })
+    cy.wait(2000)
+    
+    cy.contains(emailCliente).closest('tr, [style*="border"], div').within(() => {
+      cy.contains('button', 'Marcar como Entregue').click()
+    })
+    cy.wait(2000)
   })
 })

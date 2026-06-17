@@ -23,7 +23,10 @@ export default function Navbar() {
   })
 
   return (
-    <nav style={{ background: 'var(--wine-dark)', borderBottom: '1px solid var(--wine)' }}
+    <nav style={{ 
+      background: 'var(--wine-dark)', 
+      borderBottom: '1px solid var(--wine)',
+      position: 'sticky', top: 0, zIndex: 1000}}
       className="px-8 py-0 flex items-center justify-between">
 
       <Link to="/" style={{
